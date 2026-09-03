@@ -60,7 +60,7 @@ const CLIENT = {
   "contribuyente": "General Motors",
   "unidadVerificadora": "MG3",
   "moleculaGeneral": "Gas Natural",
-  "fechaKickoff": "04/09/2026",
+  "fechaKickoff": "2026-09-04",
   "instalaciones": "Instalación 1",
   "overrides": {
     "0": {
@@ -125,9 +125,9 @@ const PARTIDAS_DATA = {"spanIni": 45762, "spanFin": 45811, "partidas": [{"id": "
       this.root = root;
       this.client = client;
       this.state = { tab: "general", abiertos: {}, editando: null, nombres: {}, estados: {}, sellos: {}, eliminadas: {}, agregadas: [], nextAddSeq: 0, savedAt: "", verAtraso: false };
+      this.lastTabClick = { key: null, time: 0 };
       this.load();
       this.root.addEventListener("click", e => this.onClick(e));
-      this.root.addEventListener("dblclick", e => this.onDblClick(e));
       this.render();
     }
 
@@ -315,7 +315,18 @@ const PARTIDAS_DATA = {"spanIni": 45762, "spanFin": 45811, "partidas": [{"id": "
       if (!el) return;
       const action = el.dataset.action;
       const key = el.dataset.key !== undefined ? el.dataset.key : null;
-      if (action === "tab-select") this.setState({ tab: el.dataset.tab, editando: null });
+      if (action === "tab-select") {
+        const tabKey = el.dataset.tab;
+        // Doble clic detectado por clave lógica (no por el evento nativo
+        // "dblclick"): el primer clic ya vuelve a renderizar y puede correr
+        // el layout de las pestañas, así que el navegador no siempre
+        // reconoce el segundo clic como parte del mismo doble clic si
+        // dependemos de que caiga sobre el mismo nodo del DOM.
+        const ahora = Date.now();
+        const esDobleClic = tabKey !== "general" && this.lastTabClick.key === tabKey && (ahora - this.lastTabClick.time) < 500;
+        this.lastTabClick = { key: tabKey, time: ahora };
+        this.setState({ tab: tabKey, editando: esDobleClic ? tabKey : null });
+      }
       else if (action === "partida-toggle") {
         const abKey = key + ":" + el.dataset.pid;
         const a = Object.assign({}, this.state.abiertos);
@@ -327,13 +338,6 @@ const PARTIDAS_DATA = {"spanIni": 45762, "spanFin": 45811, "partidas": [{"id": "
       else if (action === "export-pdf") window.print();
       else if (action === "inst-add") this.addInstalacion();
       else if (action === "inst-remove") this.removeInstalacion(key);
-    }
-
-    onDblClick(e) {
-      const el = e.target.closest("[data-rename-key]");
-      if (!el) return;
-      const key = el.dataset.renameKey;
-      this.setState({ tab: key, editando: key });
     }
 
     commitRename(key, value) {
@@ -422,7 +426,7 @@ const PARTIDAS_DATA = {"spanIni": 45762, "spanFin": 45811, "partidas": [{"id": "
       insts.forEach(inst => {
         const done = inst.partidas.filter(p => this.estado(inst.key, p.id) === "completada").length;
         const editing = this.state.editando === inst.key;
-        html.push('<div class="tab' + (this.state.tab === inst.key ? " active" : "") + '" title="Doble clic para renombrar"' + (editing ? "" : ' data-action="tab-select" data-tab="' + inst.key + '"') + ' data-rename-key="' + inst.key + '">');
+        html.push('<div class="tab' + (this.state.tab === inst.key ? " active" : "") + '" title="Doble clic para renombrar"' + (editing ? "" : ' data-action="tab-select" data-tab="' + inst.key + '"') + '>');
         if (editing) {
           html.push('<input class="rename-input" type="text" id="rename-input" value="' + esc(inst.nombre) + '" data-key="' + inst.key + '">');
         } else {
