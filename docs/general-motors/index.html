@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan de trabajo · General Motors</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+<style>
+  :root {
+    --accent: #E8612D; --accent-dk: #C94A1C; --accent-lt: #FFF5F0;
+    --primary: #4D4D4D; --text2: #555; --text3: #888;
+    --line: #E5E5E5; --surface: #F7F7F7;
+    --green: #0D9B6A; --green-dk: #065F42; --green-bg: #EDFCF6; --green-line: #C3E8D9;
+    --red: #D0402F; --red-dk: #9A1F17; --red-bg: #FDF1EF; --red-line: #F3CFC9;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; }
+  body { font-family: Inter, -apple-system, "Segoe UI", Arial, sans-serif; -webkit-font-smoothing: antialiased; color: var(--primary); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-dk); }
+  button { font-family: inherit; }
+  input[type="text"].rename-input { font: inherit; border: none; border-bottom: 1.5px solid var(--accent); background: transparent; outline: none; padding: 0; color: inherit; }
+  .tab { display: flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 10px 10px 0 0; cursor: pointer; user-select: none; font-size: 13px; font-weight: 600; color: var(--text2); background: transparent; border-bottom: 3px solid transparent; margin-bottom: -1.5px; }
+  .tab.active { font-weight: 800; color: var(--accent-dk); background: var(--accent-lt); border-bottom-color: var(--accent); }
+  .tab-badge { font-size: 9px; font-weight: 800; letter-spacing: 0.6px; padding: 2px 7px; border-radius: 50px; background: rgba(0,0,0,0.05); color: var(--text3); }
+  .btn-ghost { font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--text2); border: 1px solid var(--line); border-radius: 50px; padding: 6px 13px; cursor: pointer; user-select: none; background: #fff; }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent-dk); }
+  .btn-danger:hover { border-color: var(--red); color: var(--red-dk); background: var(--red-bg); }
+  .tab-add { border: 1.5px dashed var(--line); color: var(--text3); font-weight: 700; }
+  .tab-add:hover { border-color: var(--accent); color: var(--accent-dk); background: var(--accent-lt); }
+  .eye-toggle { display: flex; align-items: center; gap: 7px; cursor: pointer; user-select: none; font-size: 10px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; border-radius: 50px; padding: 5px 12px; border: 1px solid var(--line); background: #fff; color: var(--text3); }
+  .eye-toggle.on { color: var(--red-dk); border-color: var(--accent); background: var(--accent-lt); }
+  .pill { border-radius: 50px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; text-align: center; user-select: none; white-space: nowrap; display: inline-block; }
+  .pill-pendiente { background: var(--surface); color: var(--text2); border: 1px solid var(--line); }
+  .pill-proceso { background: var(--accent-lt); color: var(--accent-dk); border: 1px solid var(--accent); }
+  .pill-completada { background: var(--green-bg); color: var(--green-dk); border: 1px solid var(--green-line); }
+  .checkbox { width: 20px; height: 20px; flex: none; border-radius: 6px; cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: center; font-weight: 900; background: #fff; border: 1.5px solid var(--line); color: var(--accent); }
+  .checkbox.completada { background: var(--green); border-color: var(--green); color: #fff; font-size: 11px; }
+  .checkbox.proceso { border-color: var(--accent); font-size: 15px; }
+  .checkbox.pendiente { font-size: 15px; }
+  #toolbar { position: sticky; top: 0; z-index: 20; display: flex; justify-content: flex-end; padding: 10px 20px; background: #fff; border-bottom: 1px solid var(--line); }
+  #toolbar button { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.4px; color: #fff; background: var(--accent); border: none; border-radius: 50px; padding: 9px 18px; cursor: pointer; }
+  #toolbar button:hover { background: var(--accent-dk); }
+  @media print {
+    #toolbar, .vol-tabs { display: none !important; }
+    * { box-shadow: none !important; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <button id="btn-pdf" type="button">Descargar PDF</button>
+</div>
+<div id="app"></div>
+
+<script>
+const CLIENT = {
+  "contribuyente": "General Motors",
+  "unidadVerificadora": "MG3",
+  "moleculaGeneral": "Gas natural",
+  "fechaKickoff": "04/09/2026",
+  "instalaciones": "Instalación 1",
+  "overrides": {
+    "0": {
+      "excluir": [
+        "E"
+      ]
+    }
+  },
+  "excluirGeneral": [
+    "E"
+  ]
+};
+const PARTIDAS_DATA = {"spanIni": 45762, "spanFin": 45811, "partidas": [{"id": "A", "nombre": "Pre-auditoría y diagnóstico", "responsable": "VOLUMETRICS", "ini": 45762, "fin": 45777, "subtareas": [{"id": "A.1", "nombre": "VOLUMETRICS elabora y entrega checklist del anexo 21 y 22 al contribuyente", "resp": "VOLUMETRICS", "ini": 45762, "fin": 45767}, {"id": "A.2", "nombre": "CONTRIBUYENTE provee los documentos del checklist de pre-auditoría", "resp": "CONTRIBUYENTE", "ini": 45762, "fin": 45767}, {"id": "A.3", "nombre": "VOLUMETRICS realiza pre-auditoría y diagnóstico", "resp": "VOLUMETRICS", "ini": 45762, "fin": 45767}, {"id": "A.4", "nombre": "Elaboración del informe ejecutivo", "resp": "VOLUMETRICS", "ini": 45767, "fin": 45777}]}, {"id": "B", "nombre": "Generación de reportes históricos SAT 2022-2025", "responsable": "VOLUMETRICS", "ini": 45762, "fin": 45783, "subtareas": [{"id": "B.1", "nombre": "VOLUMETRICS provee layout y requerimientos de datos", "resp": "VOLUMETRICS", "ini": 45762, "fin": 45769}, {"id": "B.2", "nombre": "CONTRIBUYENTE provee la data cruda (raw data)", "resp": "CONTRIBUYENTE", "ini": 45762, "fin": 45769}, {"id": "B.3", "nombre": "VOLUMETRICS llena los layouts y valida la información técnica del reporte (balances y facturas)", "resp": "VOLUMETRICS", "ini": 45769, "fin": 45776}, {"id": "B.4", "nombre": "VOLUMETRICS genera los reportes JSON", "resp": "VOLUMETRICS", "ini": 45776, "fin": 45783}, {"id": "B.5", "nombre": "Visto bueno de reportes y carga al portal del SAT", "resp": "CONTRIBUYENTE", "ini": 45776, "fin": 45783}]}, {"id": "C", "nombre": "Programa informático para el control volumétrico del SAT — Nube", "responsable": "VOLUMETRICS", "ini": 45762, "fin": 45804, "subtareas": [{"id": "C.1", "nombre": "Apertura de cuenta: configuración de accesos al software SaaS (infraestructura, productos, empresa y sistema de medición)", "resp": "VOLUMETRICS", "ini": 45762, "fin": 45769}, {"id": "C.2", "nombre": "Levantamiento de requerimientos para integraciones a los sistemas de información y medición del contribuyente", "resp": "VOLUMETRICS", "ini": 45762, "fin": 45769}, {"id": "C.3", "nombre": "Configuración y desarrollo de módulos específicos del cliente que sean parte de las integraciones", "resp": "VOLUMETRICS", "ini": 45769, "fin": 45797}, {"id": "C.4", "nombre": "Pruebas FAT y SAT", "resp": "VOLUMETRICS", "ini": 45790, "fin": 45797}, {"id": "C.6", "nombre": "Capacitación a personal de CONTRIBUYENTE", "resp": "VOLUMETRICS", "ini": 45790, "fin": 45797}]}, {"id": "D", "nombre": "Adaptación e implementación del SGM 10012 — Balance volumétrico", "responsable": "VOLUMETRICS", "ini": 45762, "fin": 45790, "subtareas": [{"id": "D.1", "nombre": "Entrega del programa de implementación / ejecución y asesoramiento del SGM", "resp": "VOLUMETRICS", "ini": 45762, "fin": 45769}, {"id": "D.2", "nombre": "VOLUMETRICS documenta y registra los procedimientos para el SGM 10012", "resp": "VOLUMETRICS", "ini": 45762, "fin": 45769}, {"id": "D.3", "nombre": "VOLUMETRICS adecúa e implementa el SGM 10012 para CONTRIBUYENTE", "resp": "VOLUMETRICS", "ini": 45769, "fin": 45790}, {"id": "D.4", "nombre": "VOLUMETRICS capacita a CONTRIBUYENTE en el correcto uso del SGM en el software", "resp": "VOLUMETRICS", "ini": 45783, "fin": 45790}]}, {"id": "E", "nombre": "Certificado anual del SAT — Anexo 21 y 22, 2022-2025", "responsable": "%UV%", "ini": 45804, "fin": 45811, "subtareas": [{"id": "E.1", "nombre": "%UV% hace inspección del software, SGM y sistema de medición", "resp": "%UV%", "ini": 45804, "fin": 45811}, {"id": "E.2", "nombre": "%UV% emite Certificado SAT 2022-2025", "resp": "%UV%", "ini": 45804, "fin": 45811}]}]};
+</script>
+<script>
+(function () {
+  "use strict";
+
+  const PARTIDAS = PARTIDAS_DATA.partidas;
+  const SPAN_INI = PARTIDAS_DATA.spanIni, SPAN_FIN = PARTIDAS_DATA.spanFin;
+  const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  const NIVEL = ["pendiente", "proceso", "completada"];
+  const ETIQUETA = { pendiente: "Pendiente", proceso: "En proceso", completada: "Completada" };
+  const VALOR = { pendiente: 0, proceso: 0.5, completada: 1 };
+  const CIRC = 2 * Math.PI * 84;
+  const STORE_BASE = "vol-avance-v2";
+  const HOY = (function () {
+    const d = new Date();
+    return Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(1899, 11, 30)) / 86400000);
+  })();
+
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const slug = s => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const norm = s => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+  const colorFor = pct => pct >= 99.95 ? "var(--green)" : (pct < 0.05 ? "#B5B5B5" : "var(--accent)");
+  const unaDecimal = pct => (Math.round(pct * 10) / 10).toFixed(1) + "%";
+  function fecha(serial) {
+    const d = new Date(Date.UTC(1899, 11, 30) + serial * 86400000);
+    return d.getUTCDate() + " " + MESES[d.getUTCMonth()];
+  }
+  function rango(a, b) { return fecha(a) + " → " + fecha(b); }
+  function fechaLarga(serial) {
+    const d = new Date(Date.UTC(1899, 11, 30) + serial * 86400000);
+    return d.getUTCDate() + " " + MESES[d.getUTCMonth()] + " " + d.getUTCFullYear();
+  }
+  function fechaCorta(serial) {
+    const d = new Date(Date.UTC(1899, 11, 30) + serial * 86400000), dd = n => String(n).padStart(2, "0");
+    return dd(d.getUTCDate()) + "/" + dd(d.getUTCMonth() + 1) + "/" + d.getUTCFullYear();
+  }
+  function serialDe(iso) {
+    const m = /^\s*(\d{4})-(\d{1,2})-(\d{1,2})/.exec(String(iso || ""));
+    if (!m) return SPAN_INI;
+    return Math.round((Date.UTC(+m[1], +m[2] - 1, +m[3]) - Date.UTC(1899, 11, 30)) / 86400000);
+  }
+  function lista(arr) {
+    if (arr.length === 1) return arr[0];
+    return arr.slice(0, -1).join(", ") + " y " + arr[arr.length - 1];
+  }
+
+  class PlanApp {
+    constructor(root, client) {
+      this.root = root;
+      this.client = client;
+      this.state = { tab: "general", abiertos: {}, editando: null, nombres: {}, estados: {}, sellos: {}, eliminadas: {}, agregadas: [], nextAddSeq: 0, savedAt: "", verAtraso: false };
+      this.load();
+      this.root.addEventListener("click", e => this.onClick(e));
+      this.root.addEventListener("dblclick", e => this.onDblClick(e));
+      this.render();
+    }
+
+    store() { return STORE_BASE + ":" + slug(this.client.contribuyente || ""); }
+    load() {
+      try {
+        const raw = localStorage.getItem(this.store());
+        if (raw) {
+          const d = JSON.parse(raw);
+          this.state.nombres = d.nombres || {};
+          this.state.estados = d.estados || {};
+          this.state.sellos = d.sellos || {};
+          this.state.eliminadas = d.eliminadas || {};
+          this.state.agregadas = d.agregadas || [];
+          this.state.nextAddSeq = d.nextAddSeq || 0;
+          this.state.savedAt = d.savedAt || "";
+        }
+      } catch (e) {}
+    }
+    persist(patch) {
+      Object.assign(this.state, patch);
+      const d = new Date(), dd = n => String(n).padStart(2, "0");
+      this.state.savedAt = "Guardado " + dd(d.getDate()) + "/" + dd(d.getMonth() + 1) + " " + dd(d.getHours()) + ":" + dd(d.getMinutes());
+      try {
+        localStorage.setItem(this.store(), JSON.stringify({
+          nombres: this.state.nombres, estados: this.state.estados, sellos: this.state.sellos,
+          eliminadas: this.state.eliminadas, agregadas: this.state.agregadas, nextAddSeq: this.state.nextAddSeq,
+          savedAt: this.state.savedAt
+        }));
+      } catch (e) {}
+    }
+    setState(patch) { Object.assign(this.state, patch); this.render(); }
+
+    uv() { return String(this.client.unidadVerificadora || "VICER").trim(); }
+    contribuyente() { return String(this.client.contribuyente || "Contribuyente").trim(); }
+    txt(s) { return String(s).split("%UV%").join(this.uv()); }
+
+    nombresBase() {
+      const raw = String(this.client.instalaciones || "Instalación 1").split(",").map(s => s.trim()).filter(Boolean);
+      return raw.length ? raw : ["Instalación 1"];
+    }
+    // fechaKickoff: "2026-06-01, Malta Tlaxcala: 2026-03-01" — fecha general + excepciones por instalación.
+    // Un nombre parcial que coincide con más de una instalación NO se adivina: se ignora y se advierte.
+    planKickoff() {
+      const base = this.nombresBase();
+      const alias = base.map((n, i) => [norm(n), norm(this.state.nombres["b" + i] || "")].filter(Boolean));
+      const partes = String(this.client.fechaKickoff || "").split(",").map(s => s.trim()).filter(Boolean);
+      const asignadas = {}, ambiguas = [];
+      let general = "";
+      for (const parte of partes) {
+        const m = /^(.*?)\s*:\s*(\d{4}-\d{1,2}-\d{1,2})$/.exec(parte);
+        if (!m) { if (!general) general = parte; continue; }
+        const clave = norm(m[1]);
+        if (!clave) { if (!general) general = m[2]; continue; }
+        const coinciden = [];
+        alias.forEach((as, i) => { if (as.some(a => a === clave || a.indexOf(clave) !== -1 || clave.indexOf(a) !== -1)) coinciden.push(i); });
+        if (coinciden.length > 1) ambiguas.push({ texto: m[1].trim(), fecha: m[2], insts: coinciden.map(i => this.state.nombres["b" + i] || base[i]) });
+        else if (coinciden.length === 1) asignadas[coinciden[0]] = m[2];
+      }
+      return { general: general, asignadas: asignadas, ambiguas: ambiguas };
+    }
+    // Instalaciones = base (definidas al generar el plan, identificadas "b0","b1"...
+    // y ocultables con "Eliminar") + agregadas en vivo ("a0","a1"... vía "+ Instalación").
+    // La clave es estable: eliminar una no corre el avance guardado de las demás.
+    instalaciones() {
+      const plan = this.planKickoff();
+      const overrides = this.client.overrides || {};
+      const base = this.nombresBase()
+        .map((nombre, i) => ({ key: "b" + i, origIdx: i, nombreBase: nombre }))
+        .filter(b => !this.state.eliminadas[b.key]);
+      const agregadas = (this.state.agregadas || []).map(a => ({ key: a.key, origIdx: null, nombreBase: a.nombre }));
+      return base.concat(agregadas).map(item => {
+        const o = item.origIdx !== null ? (overrides[item.origIdx] || overrides[String(item.origIdx)] || {}) : {};
+        const excluir = o.excluir || (item.origIdx === null ? (this.client.excluirGeneral || []) : []);
+        const incluidas = PARTIDAS.filter(p => excluir.indexOf(p.id) === -1);
+        const kickoffStr = o.kickoff
+          || (item.origIdx !== null ? plan.asignadas[item.origIdx] : null)
+          || plan.general || this.client.fechaKickoff;
+        const arranque = serialDe(kickoffStr);
+        return {
+          key: item.key,
+          nombre: this.state.nombres[item.key] || item.nombreBase,
+          kickoff: arranque,
+          off: arranque - SPAN_INI,
+          ini: Math.min.apply(null, incluidas.map(p => p.ini)) + (arranque - SPAN_INI),
+          fin: Math.max.apply(null, incluidas.map(p => p.fin)) + (arranque - SPAN_INI),
+          molecula: o.molecula || this.client.moleculaGeneral || "",
+          partidas: incluidas
+        };
+      });
+    }
+    estadoSub(key, pid, sid) {
+      const k = key + ":" + sid;
+      return this.state.estados[k] || "pendiente";
+    }
+    toggleSub(key, pid, sid) {
+      const actual = this.estadoSub(key, pid, sid);
+      const estados = Object.assign({}, this.state.estados);
+      estados[key + ":" + sid] = NIVEL[(NIVEL.indexOf(actual) + 1) % 3];
+      const p = PARTIDAS.filter(q => q.id === pid)[0];
+      let completa = true;
+      p.subtareas.forEach(s => { if ((estados[key + ":" + s.id] || "pendiente") !== "completada") completa = false; });
+      const sellos = Object.assign({}, this.state.sellos);
+      const clave = key + ":" + pid;
+      if (completa && !sellos[clave]) sellos[clave] = HOY;
+      else if (!completa && sellos[clave]) delete sellos[clave];
+      this.persist({ estados: estados, sellos: sellos });
+      this.render();
+    }
+    avance(key, p) {
+      let v = 0;
+      p.subtareas.forEach(s => { v += VALOR[this.estadoSub(key, p.id, s.id)]; });
+      return p.subtareas.length ? (v / p.subtareas.length) * 100 : 0;
+    }
+    conteo(key, p) {
+      let n = 0;
+      p.subtareas.forEach(s => { if (this.estadoSub(key, p.id, s.id) === "completada") n++; });
+      return n;
+    }
+    estado(key, pid) {
+      const p = PARTIDAS.filter(q => q.id === pid)[0];
+      if (!p) return "pendiente";
+      const a = this.avance(key, p);
+      if (a >= 99.95) return "completada";
+      return a < 0.05 ? "pendiente" : "proceso";
+    }
+    atraso(inst, p) {
+      const finPlan = p.fin + inst.off;
+      const est = this.estado(inst.key, p.id);
+      const ref = est === "completada" ? (this.state.sellos[inst.key + ":" + p.id] || HOY) : HOY;
+      const dias = ref - finPlan;
+      return dias > 0 ? Math.floor(dias / 7) : 0;
+    }
+    addInstalacion() {
+      const nombre = window.prompt("Nombre de la nueva instalación:", "Nueva instalación");
+      if (nombre === null) return;
+      const v = nombre.trim();
+      if (!v) return;
+      const seq = this.state.nextAddSeq || 0;
+      const key = "a" + seq;
+      const agregadas = (this.state.agregadas || []).concat([{ key: key, nombre: v }]);
+      this.persist({ agregadas: agregadas, nextAddSeq: seq + 1 });
+      this.setState({ tab: key, editando: null });
+    }
+    removeInstalacion(key) {
+      const insts = this.instalaciones();
+      if (insts.length <= 1) { window.alert("Debe quedar al menos una instalación."); return; }
+      const inst = insts.filter(i => i.key === key)[0];
+      const nombre = inst ? inst.nombre : "esta instalación";
+      const ok = window.confirm(
+        '¿Eliminar la instalación "' + nombre + '"?\n\nSe perderá permanentemente su avance registrado (subtareas, sellos de completado y renombres). Esta acción no se puede deshacer.'
+      );
+      if (!ok) return;
+      const estados = Object.assign({}, this.state.estados);
+      const sellos = Object.assign({}, this.state.sellos);
+      const abiertos = Object.assign({}, this.state.abiertos);
+      const nombres = Object.assign({}, this.state.nombres);
+      const prefijo = key + ":";
+      Object.keys(estados).forEach(k => { if (k.indexOf(prefijo) === 0) delete estados[k]; });
+      Object.keys(sellos).forEach(k => { if (k.indexOf(prefijo) === 0) delete sellos[k]; });
+      Object.keys(abiertos).forEach(k => { if (k.indexOf(prefijo) === 0) delete abiertos[k]; });
+      delete nombres[key];
+      const patch = { estados: estados, sellos: sellos, nombres: nombres };
+      if (key.charAt(0) === "a") patch.agregadas = (this.state.agregadas || []).filter(a => a.key !== key);
+      else {
+        const eliminadas = Object.assign({}, this.state.eliminadas);
+        eliminadas[key] = true;
+        patch.eliminadas = eliminadas;
+      }
+      this.persist(patch);
+      this.setState({ tab: "general", abiertos: abiertos, editando: null });
+    }
+    reiniciar() {
+      const estados = Object.assign({}, this.state.estados);
+      const sellos = Object.assign({}, this.state.sellos);
+      const mio = k => this.state.tab === "general" || k.indexOf(this.state.tab + ":") === 0;
+      Object.keys(estados).forEach(k => { if (mio(k)) delete estados[k]; });
+      Object.keys(sellos).forEach(k => { if (mio(k)) delete sellos[k]; });
+      this.persist({ estados: estados, sellos: sellos });
+      this.render();
+    }
+
+    onClick(e) {
+      const el = e.target.closest("[data-action]");
+      if (!el) return;
+      const action = el.dataset.action;
+      const key = el.dataset.key !== undefined ? el.dataset.key : null;
+      if (action === "tab-select") this.setState({ tab: el.dataset.tab, editando: null });
+      else if (action === "partida-toggle") {
+        const abKey = key + ":" + el.dataset.pid;
+        const a = Object.assign({}, this.state.abiertos);
+        a[abKey] = !a[abKey];
+        this.setState({ abiertos: a });
+      } else if (action === "subtarea-toggle") this.toggleSub(key, el.dataset.pid, el.dataset.sid);
+      else if (action === "atraso-toggle") this.setState({ verAtraso: !this.state.verAtraso });
+      else if (action === "reset") { if (confirm("¿Reiniciar el avance de esta vista? Esta acción no se puede deshacer.")) this.reiniciar(); }
+      else if (action === "export-pdf") window.print();
+      else if (action === "inst-add") this.addInstalacion();
+      else if (action === "inst-remove") this.removeInstalacion(key);
+    }
+
+    onDblClick(e) {
+      const el = e.target.closest("[data-rename-key]");
+      if (!el) return;
+      const key = el.dataset.renameKey;
+      this.setState({ tab: key, editando: key });
+    }
+
+    commitRename(key, value) {
+      const v = String(value || "").trim();
+      const nombres = Object.assign({}, this.state.nombres);
+      if (v) { nombres[key] = v; this.persist({ nombres: nombres }); }
+      this.setState({ editando: null });
+    }
+
+    render() {
+      const insts = this.instalaciones();
+      const uv = this.uv();
+      const contribuyente = this.contribuyente();
+      const esGeneral = this.state.tab === "general";
+      const activa = esGeneral ? null : (insts.filter(i => i.key === this.state.tab)[0] || insts[0]);
+      const plan = this.planKickoff();
+
+      let total = 0, hechas = 0, subTotal = 0, subHechas = 0, valor = 0;
+      insts.forEach(i => {
+        total += i.partidas.length;
+        hechas += i.partidas.filter(p => this.estado(i.key, p.id) === "completada").length;
+        i.partidas.forEach(p => {
+          subTotal += p.subtareas.length;
+          subHechas += this.conteo(i.key, p);
+          valor += this.avance(i.key, p) / 100 * p.subtareas.length;
+        });
+      });
+      const pctNum = subTotal ? (valor / subTotal) * 100 : 0;
+      const pct = pctNum / 100;
+
+      let atrasoMax = 0, atrasoPorPartida = {}, atrasoOrden = [];
+      insts.forEach(i => {
+        i.partidas.forEach(p => {
+          const w = this.atraso(i, p);
+          if (w > atrasoMax) { atrasoMax = w; atrasoPorPartida = {}; atrasoOrden = []; }
+          if (w > 0 && w === atrasoMax) {
+            if (!atrasoPorPartida[p.id]) { atrasoPorPartida[p.id] = { label: p.id + ". " + this.txt(p.nombre), insts: [] }; atrasoOrden.push(p.id); }
+            atrasoPorPartida[p.id].insts.push(i.nombre);
+          }
+        });
+      });
+      const atrasoDe = atrasoOrden.map(id => {
+        const g = atrasoPorPartida[id];
+        return g.label + (g.insts.length === insts.length && insts.length > 1 ? " (todas las instalaciones)" : " (" + lista(g.insts) + ")");
+      });
+
+      const html = [];
+      html.push('<div style="min-height:100vh;min-width:1000px;background:#fff;color:var(--primary);font-family:Inter,sans-serif">');
+      html.push('<div style="height:5px;background:linear-gradient(90deg,var(--accent),var(--accent-dk))"></div>');
+      html.push('<div style="max-width:1320px;box-sizing:border-box;margin:0 auto;padding:30px 56px 56px">');
+
+      // Header
+      html.push('<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:32px;flex-wrap:wrap">');
+      html.push('<div style="display:flex;flex-direction:column;gap:12px">');
+      html.push('<div style="font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--accent);border-bottom:2px solid var(--accent);padding-bottom:5px;align-self:flex-start">Controles volumétricos · Anexo 21 y 22</div>');
+      html.push('<div style="font-size:31px;font-weight:800;line-height:1.1;letter-spacing:-0.5px">' + esc(contribuyente) + '</div>');
+      let a = Infinity, b = -Infinity;
+      insts.forEach(i => { a = Math.min(a, i.ini); b = Math.max(b, i.fin); });
+      const ventana = isFinite(a) ? fechaLarga(a) + " → " + fechaLarga(b) : "";
+      html.push('<div style="font-size:12px;color:var(--text3)">Avance del plan de trabajo · ' + esc(ventana) + '</div>');
+      html.push('</div>');
+      const molsVistas = [];
+      insts.forEach(i => { if (i.molecula && molsVistas.indexOf(i.molecula) === -1) molsVistas.push(i.molecula); });
+      html.push('<div style="display:grid;grid-template-columns:auto auto;gap:6px 28px;font-size:11px;text-align:right">');
+      html.push(kv("Equipo", "VOLUMETRICS · " + uv + " · " + contribuyente));
+      html.push(kv("Unidad verificadora", uv));
+      html.push(kv("Molécula", molsVistas.join(" · ")));
+      html.push('</div></div>');
+
+      // Avisos (kickoff ambiguo)
+      if (plan.ambiguas.length) {
+        html.push('<div style="margin-top:22px;display:flex;flex-direction:column;gap:8px">');
+        plan.ambiguas.forEach(am => {
+          const texto = '"' + am.texto + ": " + am.fecha + '" coincide con ' + am.insts.length + " instalaciones (" + lista(am.insts) + "). Escribe el nombre completo de la instalación que arranca en esa fecha; por ahora todas heredan la fecha general.";
+          html.push('<div style="display:grid;grid-template-columns:20px minmax(0,1fr);gap:11px;align-items:start;background:var(--red-bg);border:1px solid var(--red-line);border-left:4px solid var(--red);border-radius:12px;padding:14px 18px">');
+          html.push('<div style="width:20px;height:20px;color:var(--red-dk);font-weight:900">!</div>');
+          html.push('<div><div style="font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--red-dk)">Fecha de kickoff ambigua</div>');
+          html.push('<div style="font-size:12px;color:var(--text2);margin-top:3px">' + esc(texto) + '</div></div></div>');
+        });
+        html.push('</div>');
+      }
+
+      // Tabs
+      html.push('<div class="vol-tabs" style="display:flex;gap:6px;margin:26px 0 24px;border-bottom:1.5px solid var(--line);align-items:flex-end;flex-wrap:wrap">');
+      html.push('<div class="tab' + (esGeneral ? " active" : "") + '" data-action="tab-select" data-tab="general">General</div>');
+      insts.forEach(inst => {
+        const done = inst.partidas.filter(p => this.estado(inst.key, p.id) === "completada").length;
+        const editing = this.state.editando === inst.key;
+        html.push('<div class="tab' + (this.state.tab === inst.key ? " active" : "") + '" title="Doble clic para renombrar"' + (editing ? "" : ' data-action="tab-select" data-tab="' + inst.key + '"') + ' data-rename-key="' + inst.key + '">');
+        if (editing) {
+          html.push('<input class="rename-input" type="text" id="rename-input" value="' + esc(inst.nombre) + '" data-key="' + inst.key + '">');
+        } else {
+          html.push('<span>' + esc(inst.nombre) + '</span>');
+        }
+        html.push('<span class="tab-badge">' + done + "/" + inst.partidas.length + '</span>');
+        html.push('</div>');
+      });
+      html.push('<div class="tab tab-add" data-action="inst-add" title="Agregar una nueva instalación">+ Instalación</div>');
+      html.push('</div>');
+
+      if (esGeneral) {
+        html.push(this.renderGeneral(insts, pctNum, pct, subHechas, subTotal, hechas, total, atrasoMax, atrasoDe));
+      } else if (activa) {
+        html.push(this.renderInstalacion(activa));
+      }
+
+      html.push('</div>');
+      html.push('<div style="background:var(--primary);padding:18px 56px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap">');
+      html.push('<span style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,0.85)">VOLUMETRICS by AIVARA</span>');
+      html.push('<span style="font-size:11px;color:rgba(255,255,255,0.6)">volumetrics.com.mx · contacto@aivara.mx</span>');
+      html.push('</div></div>');
+
+      this.root.innerHTML = html.join("");
+
+      if (this.state.editando !== null) {
+        const inp = document.getElementById("rename-input");
+        if (inp) {
+          inp.focus(); inp.select();
+          const key = inp.dataset.key;
+          inp.addEventListener("blur", () => this.commitRename(key, inp.value));
+          inp.addEventListener("keydown", ev => {
+            if (ev.key === "Enter") { ev.preventDefault(); inp.blur(); }
+            if (ev.key === "Escape") { ev.preventDefault(); this.setState({ editando: null }); }
+          });
+        }
+      }
+
+      function kv(k, v) {
+        return '<div style="font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--text3)">' + esc(k) + '</div>'
+          + '<div style="font-weight:600;color:var(--text2)">' + esc(v) + '</div>';
+      }
+    }
+
+    renderGeneral(insts, pctNum, pct, subHechas, subTotal, hechas, total, atrasoMax, atrasoDe) {
+      const out = [];
+      out.push('<div style="display:grid;grid-template-columns:minmax(280px,344px) 1fr 1fr;gap:22px;align-items:start">');
+
+      // Anillo
+      out.push('<div style="border:1.5px solid var(--line);border-left:4px solid var(--accent);border-radius:14px;padding:22px 24px 20px;box-shadow:0 2px 10px rgba(0,0,0,0.04)">');
+      out.push('<div style="font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--text3)">Avance conjunto</div>');
+      out.push('<div style="display:flex;justify-content:center;margin:14px 0 4px"><div style="position:relative;width:196px;height:196px">');
+      out.push('<svg viewBox="0 0 200 200" style="width:196px;height:196px;transform:rotate(-90deg)">');
+      out.push('<circle cx="100" cy="100" r="84" fill="none" stroke="#EFEFEF" stroke-width="18"></circle>');
+      out.push('<circle cx="100" cy="100" r="84" fill="none" stroke="#E8612D" stroke-width="18" stroke-linecap="round" stroke-dasharray="' + CIRC + '" stroke-dashoffset="' + (CIRC * (1 - pct)) + '"></circle>');
+      out.push('</svg><div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">');
+      out.push('<div style="font-size:46px;font-weight:900;letter-spacing:-2px;line-height:1">' + unaDecimal(pctNum) + '</div>');
+      out.push('<div style="font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--text3)">Completado</div></div></div></div>');
+      out.push('<div style="font-size:12px;color:var(--text2);text-align:center;padding-bottom:16px;border-bottom:1px solid var(--line)">'
+        + subHechas + " de " + subTotal + " subtareas al 100% · " + hechas + " de " + total + " partidas · " + insts.length + (insts.length === 1 ? " instalación" : " instalaciones") + '</div>');
+
+      out.push('<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:12px">');
+      out.push('<div class="eye-toggle' + (this.state.verAtraso ? " on" : "") + '" data-action="atraso-toggle">' + (this.state.verAtraso ? "Ocultar atraso" : "Ver atraso") + '</div>');
+      if (this.state.verAtraso) {
+        out.push('<div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 12px;align-items:baseline">');
+        out.push('<div style="font-size:34px;font-weight:900;letter-spacing:-1.4px;line-height:1;color:' + (atrasoMax > 0 ? "var(--red-dk)" : "var(--green-dk)") + '">' + atrasoMax + '</div>');
+        out.push('<div><div style="font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--text3)">Semanas atrasadas</div>');
+        out.push('<div style="font-size:11px;font-weight:600;color:var(--text2)">' + (atrasoMax > 0 ? "Partida más atrasada · " + atrasoMax + (atrasoMax === 1 ? " semana" : " semanas") : "Sin partidas vencidas") + '</div></div>');
+        out.push('<div style="grid-column:1 / -1;font-size:10px;font-style:italic;color:var(--text3)">' + esc(atrasoMax > 0 ? atrasoDe.join(" · ") : "Todas las partidas a tiempo") + '</div>');
+        out.push('</div>');
+      }
+      out.push('</div>');
+
+      out.push('<div style="font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--text3);margin:16px 0 10px">Ponderación por instalación</div>');
+      out.push('<div style="display:flex;flex-direction:column;gap:11px">');
+      let subTotalG = 0;
+      insts.forEach(i => i.partidas.forEach(p => subTotalG += p.subtareas.length));
+      insts.forEach(i => {
+        let st = 0, sv = 0, n = i.partidas.length, d = i.partidas.filter(p => this.estado(i.key, p.id) === "completada").length;
+        i.partidas.forEach(p => { st += p.subtareas.length; sv += this.avance(i.key, p) / 100 * p.subtareas.length; });
+        const rp = st ? (sv / st) * 100 : 0;
+        out.push('<div style="display:grid;grid-template-columns:1fr auto;gap:3px 8px">');
+        out.push('<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(i.nombre) + '</div>');
+        out.push('<div style="font-size:12px;font-weight:800;color:var(--accent-dk)">' + unaDecimal(rp) + '</div>');
+        out.push('<div style="grid-column:1 / -1;height:6px;background:var(--surface);border-radius:50px;overflow:hidden"><div style="width:' + rp + '%;height:100%;background:' + colorFor(rp) + ';border-radius:50px"></div></div>');
+        out.push('<div style="grid-column:1 / -1;font-size:10px;color:var(--text3)">' + d + " de " + n + " partidas · " + this.conteo2(i) + " de " + st + " subtareas al 100% · peso " + Math.round((st / (subTotalG || 1)) * 100) + '%</div>');
+        out.push('</div>');
+      });
+      out.push('</div></div>');
+
+      // Completadas / pendientes
+      const completadas = [], pendientes = [];
+      PARTIDAS.forEach(p => {
+        const aplican = insts.filter(i => i.partidas.some(q => q.id === p.id));
+        if (!aplican.length) return;
+        const done = aplican.filter(i => this.estado(i.key, p.id) === "completada");
+        const proc = aplican.filter(i => this.estado(i.key, p.id) === "proceso");
+        const pend = aplican.filter(i => this.estado(i.key, p.id) === "pendiente");
+        const label = p.id + ". " + this.txt(p.nombre);
+        if (done.length) completadas.push({ label: label, detalle: (done.length === aplican.length && aplican.length === insts.length) ? "En todas las instalaciones" : "(" + lista(done.map(i => i.nombre)) + ")" });
+        if (proc.length || pend.length) {
+          const grupos = [];
+          if (proc.length) grupos.push('<span class="pill pill-proceso" style="font-size:9px;padding:3px 9px">En proceso</span> <span style="font-size:11px;font-style:italic;color:var(--text3)">(' + esc(lista(proc.map(i => i.nombre))) + ')</span>');
+          if (pend.length) grupos.push('<span class="pill pill-pendiente" style="font-size:9px;padding:3px 9px">Pendiente</span> <span style="font-size:11px;font-style:italic;color:var(--text3)">(' + esc(lista(pend.map(i => i.nombre))) + ')</span>');
+          pendientes.push({ label: label, grupos: grupos });
+        }
+      });
+
+      out.push('<div style="border:1.5px solid var(--line);border-radius:14px;padding:22px 24px;box-shadow:0 2px 10px rgba(0,0,0,0.04)">');
+      out.push('<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--line)">');
+      out.push('<div style="font-size:14px;font-weight:800">Partidas completadas</div>');
+      out.push('<div style="font-size:10px;font-weight:800;padding:4px 11px;border-radius:50px;background:var(--green-bg);color:var(--green-dk);border:1px solid var(--green-line)">' + completadas.length + (completadas.length === 1 ? " partida" : " partidas") + '</div></div>');
+      out.push('<div style="display:flex;flex-direction:column;gap:14px;margin-top:16px">');
+      if (!completadas.length) out.push('<div style="font-size:12px;color:var(--text3)">Aún no hay partidas completadas.</div>');
+      completadas.forEach(c => {
+        out.push('<div style="display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start">');
+        out.push('<div style="width:22px;height:22px;border-radius:50%;background:var(--green-bg);border:1px solid var(--green-line);color:var(--green-dk);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800">✓</div>');
+        out.push('<div><div style="font-size:13px;font-weight:600">' + esc(c.label) + '</div><div style="font-size:11px;font-style:italic;color:var(--text3)">' + esc(c.detalle) + '</div></div></div>');
+      });
+      out.push('</div></div>');
+
+      out.push('<div style="border:1.5px solid var(--line);border-radius:14px;padding:22px 24px;box-shadow:0 2px 10px rgba(0,0,0,0.04)">');
+      out.push('<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--line)">');
+      out.push('<div style="font-size:14px;font-weight:800">Partidas pendientes / en proceso</div>');
+      out.push('<div style="font-size:10px;font-weight:800;padding:4px 11px;border-radius:50px;background:var(--surface);color:var(--text2);border:1px solid var(--line)">' + pendientes.length + (pendientes.length === 1 ? " partida" : " partidas") + '</div></div>');
+      out.push('<div style="display:flex;flex-direction:column;gap:14px;margin-top:16px">');
+      if (!pendientes.length) out.push('<div style="font-size:12px;color:var(--text3)">Todas las partidas están completadas.</div>');
+      pendientes.forEach(p => {
+        out.push('<div style="display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start">');
+        out.push('<div style="width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;background:var(--surface);border:1px solid var(--line);color:var(--text3)">·</div>');
+        out.push('<div><div style="font-size:13px;font-weight:600">' + esc(p.label) + '</div><div style="display:flex;flex-direction:column;gap:4px;margin-top:4px">');
+        p.grupos.forEach(g => out.push('<div>' + g + '</div>'));
+        out.push('</div></div></div>');
+      });
+      out.push('</div></div>');
+
+      out.push('</div>');
+      return out.join("");
+    }
+
+    conteo2(inst) {
+      let n = 0;
+      inst.partidas.forEach(p => n += this.conteo(inst.key, p));
+      return n;
+    }
+
+    renderInstalacion(activa) {
+      const out = [];
+      out.push('<div style="display:grid;grid-template-columns:minmax(260px,300px) 1fr;gap:24px;align-items:start">');
+      const av = activa.partidas.length ? (activa.partidas.reduce((s, p) => s + this.avance(activa.key, p), 0) / activa.partidas.length) : 0;
+      let instSubTotal = 0, instSubHechas = 0, instValor = 0;
+      activa.partidas.forEach(p => { instSubTotal += p.subtareas.length; instSubHechas += this.conteo(activa.key, p); instValor += this.avance(activa.key, p) / 100 * p.subtareas.length; });
+      const instPctVal = instSubTotal ? (instValor / instSubTotal) * 100 : 0;
+      const instDone = activa.partidas.filter(p => this.estado(activa.key, p.id) === "completada").length;
+
+      out.push('<div style="border:1.5px solid var(--line);border-left:4px solid var(--accent);border-radius:14px;padding:22px 24px;box-shadow:0 2px 10px rgba(0,0,0,0.04)">');
+      out.push('<div style="font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--text3)">Instalación</div>');
+      out.push('<div style="font-size:18px;font-weight:800;margin-top:6px">' + esc(activa.nombre) + '</div>');
+      out.push('<div style="display:flex;justify-content:center;margin:18px 0 6px"><div style="position:relative;width:172px;height:172px">');
+      out.push('<svg viewBox="0 0 200 200" style="width:172px;height:172px;transform:rotate(-90deg)">');
+      out.push('<circle cx="100" cy="100" r="84" fill="none" stroke="#EFEFEF" stroke-width="18"></circle>');
+      out.push('<circle cx="100" cy="100" r="84" fill="none" stroke="#E8612D" stroke-width="18" stroke-linecap="round" stroke-dasharray="' + CIRC + '" stroke-dashoffset="' + (CIRC * (1 - instPctVal / 100)) + '"></circle>');
+      out.push('</svg><div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">');
+      out.push('<div style="font-size:40px;font-weight:900;letter-spacing:-1.8px;line-height:1">' + unaDecimal(instPctVal) + '</div>');
+      out.push('<div style="font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--text3)">Completado</div></div></div></div>');
+      out.push('<div style="font-size:12px;color:var(--text2);text-align:center;padding-bottom:18px;border-bottom:1px solid var(--line)">' + instSubHechas + " de " + instSubTotal + " subtareas al 100% · " + instDone + " de " + activa.partidas.length + ' partidas completadas</div>');
+
+      out.push('<div style="display:flex;flex-direction:column;gap:12px;margin-top:18px">');
+      out.push('<div><div style="font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--text3)">Molécula</div>');
+      out.push('<div style="font-size:11px;font-weight:800;text-transform:uppercase;padding:6px 13px;border-radius:50px;background:var(--accent-lt);color:var(--accent-dk);border:1px solid var(--accent);display:inline-block;margin-top:4px">' + esc(activa.molecula) + '</div></div>');
+      out.push('<div><div style="font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--text3)">Kickoff</div>');
+      out.push('<div style="font-size:13px;font-weight:800">' + fechaLarga(activa.kickoff) + '</div>');
+      out.push('<div style="font-size:11px;color:var(--text3)">' + fechaLarga(activa.ini) + " → " + fechaLarga(activa.fin) + '</div></div>');
+      out.push('<div><div style="font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--text3)">Equipo</div>');
+      out.push('<div style="font-size:12px;font-weight:600;color:var(--text2)">VOLUMETRICS · ' + esc(this.uv()) + ' · ' + esc(this.contribuyente()) + '</div></div>');
+
+      out.push('<div style="border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px">');
+      out.push('<div style="font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--text3)">Estados</div>');
+      out.push('<div style="display:flex;flex-direction:column;gap:7px;font-size:11px;font-weight:600;color:var(--text2)">');
+      out.push('<div style="display:flex;align-items:center;gap:9px"><span style="width:14px;height:14px;border-radius:5px;border:1.5px solid var(--line);display:inline-block"></span>Pendiente · 0%</div>');
+      out.push('<div style="display:flex;align-items:center;gap:9px"><span style="width:14px;height:14px;border-radius:5px;border:1.5px solid var(--accent);display:inline-block"></span>En proceso · 50%</div>');
+      out.push('<div style="display:flex;align-items:center;gap:9px"><span style="width:14px;height:14px;border-radius:5px;background:var(--green);display:inline-block"></span>Completada · 100%</div>');
+      out.push('</div>');
+      out.push('<div style="font-size:10px;font-style:italic;color:var(--text3)">Clic en la partida para desplegar sus subtareas; clic en cada subtarea para avanzarla. Doble clic en la pestaña para renombrar la instalación.</div>');
+      out.push('<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">');
+      out.push('<div class="btn-ghost" data-action="reset">Reiniciar</div>');
+      out.push('<div style="font-size:10px;color:var(--text3)">' + esc(this.state.savedAt) + '</div>');
+      out.push('</div>');
+      out.push('<div class="btn-ghost btn-danger" style="text-align:center" data-action="inst-remove" data-key="' + activa.key + '">Eliminar instalación</div>');
+      out.push('</div></div></div>');
+
+      // Tabla de partidas
+      out.push('<div style="border:1.5px solid var(--line);border-radius:14px;overflow:hidden">');
+      out.push('<div style="display:grid;grid-template-columns:34px minmax(160px,1fr) 110px 120px 130px 110px;gap:14px;align-items:center;padding:12px 22px;background:var(--primary)">');
+      ["#", "Partida", "Responsable", "Inicio · Fin", "Timeline", "Estado (auto)"].forEach(h =>
+        out.push('<div style="font-size:9px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:rgba(255,255,255,0.6)">' + h + '</div>'));
+      out.push('</div>');
+
+      const pista = (activa.fin - activa.ini) || 1;
+      activa.partidas.forEach(p => {
+        const est = this.estado(activa.key, p.id);
+        const abierto = !!this.state.abiertos[activa.key + ":" + p.id];
+        const left = ((p.ini + activa.off - activa.ini) / pista) * 100;
+        const w = ((p.fin - p.ini) / pista) * 100;
+        const av2 = this.avance(activa.key, p);
+        const hechasN = this.conteo(activa.key, p);
+        const sello = est === "completada" && this.state.sellos[activa.key + ":" + p.id]
+          ? "Completada el " + fechaCorta(this.state.sellos[activa.key + ":" + p.id]) : "";
+
+        out.push('<div style="border-top:1px solid var(--line);background:' + (est === "completada" ? "rgba(13,155,106,0.04)" : "#fff") + '">');
+        out.push('<div style="display:grid;grid-template-columns:34px minmax(160px,1fr) 110px 120px 130px 110px;gap:14px;align-items:center;padding:16px 22px">');
+        out.push('<div style="width:26px;height:26px;background:var(--accent);transform:rotate(45deg);display:flex;align-items:center;justify-content:center"><span style="transform:rotate(-45deg);font-size:12px;font-weight:900;color:#fff">' + p.id + '</span></div>');
+        out.push('<div style="cursor:pointer;display:grid;grid-template-columns:14px minmax(0,1fr);gap:8px;align-items:baseline;min-width:0" data-action="partida-toggle" data-key="' + activa.key + '" data-pid="' + p.id + '">');
+        out.push('<span style="font-size:11px;color:var(--text3)">' + (abierto ? "▾" : "▸") + '</span>');
+        out.push('<span style="font-size:13px;font-weight:600">' + esc(this.txt(p.nombre)) + '</span>');
+        out.push('<span style="grid-column:2;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">');
+        out.push('<span style="font-size:12px;font-weight:900;color:' + colorFor(av2) + '">' + unaDecimal(av2) + '</span>');
+        out.push('<span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text3)">' + hechasN + " de " + p.subtareas.length + ' subtareas al 100%</span>');
+        if (sello) out.push('<span style="font-size:10px;font-weight:700;color:var(--green-dk);background:var(--green-bg);border:1px solid var(--green-line);border-radius:50px;padding:2px 8px">' + esc(sello) + '</span>');
+        out.push('</span></div>');
+        out.push('<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3)">' + esc(this.txt(p.responsable)) + '</div>');
+        out.push('<div style="font-size:11px;color:var(--text2)">' + rango(p.ini + activa.off, p.fin + activa.off) + '</div>');
+        out.push('<div style="position:relative;height:8px;background:var(--surface);border:1px solid var(--line);border-radius:50px">');
+        const barColor = est === "completada" ? "var(--green)" : est === "proceso" ? "var(--accent)" : "#CFCFCF";
+        out.push('<div style="position:absolute;left:' + left + '%;width:' + Math.max(w, 2) + '%;top:-1px;bottom:-1px;border-radius:50px;background:' + barColor + '"></div></div>');
+        out.push('<div class="pill pill-' + est + '" style="padding:7px 12px;font-size:10px">' + ETIQUETA[est] + '</div>');
+        out.push('</div>');
+
+        if (abierto) {
+          out.push('<div style="padding:2px 22px 18px 84px;display:flex;flex-direction:column;gap:9px;background:var(--surface);border-top:1px solid var(--line)">');
+          p.subtareas.forEach(s => {
+            const se = this.estadoSub(activa.key, p.id, s.id);
+            const hecho = se === "completada", curso = se === "proceso";
+            out.push('<div style="display:grid;grid-template-columns:20px 38px minmax(140px,1fr) 100px 110px;gap:12px;align-items:baseline;padding-top:9px">');
+            out.push('<div class="checkbox ' + se + '" data-action="subtarea-toggle" data-key="' + activa.key + '" data-pid="' + p.id + '" data-sid="' + s.id + '" title="Clic para cambiar el estado">' + (hecho ? "✓" : (curso ? "·" : "")) + '</div>');
+            out.push('<div style="font-size:10px;font-weight:800;color:var(--accent-dk)">' + s.id + '</div>');
+            out.push('<div data-action="subtarea-toggle" data-key="' + activa.key + '" data-pid="' + p.id + '" data-sid="' + s.id + '" style="cursor:pointer;font-size:12px;font-weight:' + (curso ? 600 : 400) + ';color:' + (hecho ? "var(--green-dk)" : curso ? "var(--primary)" : "var(--text3)") + '">' + esc(this.txt(s.nombre)) + '</div>');
+            out.push('<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text3)">' + esc(this.txt(s.resp)) + '</div>');
+            out.push('<div style="font-size:11px;color:var(--text3)">' + rango(s.ini + activa.off, s.fin + activa.off) + '</div>');
+            out.push('</div>');
+          });
+          out.push('</div>');
+        }
+        out.push('</div>');
+      });
+      out.push('</div></div>');
+      return out.join("");
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    new PlanApp(document.getElementById("app"), CLIENT);
+    document.getElementById("btn-pdf").addEventListener("click", () => window.print());
+  });
+})();
+</script>
+</body>
+</html>
