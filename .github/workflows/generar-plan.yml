@@ -43,6 +43,15 @@ permissions:
 jobs:
   generar:
     runs-on: ubuntu-latest
+    # Los inputs se pasan siempre por variables de entorno (nunca interpolados
+    # directamente en un `run:`) para evitar script injection vía GitHub Actions.
+    env:
+      CONTRIBUYENTE: ${{ inputs.contribuyente }}
+      INSTALACIONES: ${{ inputs.instalaciones }}
+      MOLECULA: ${{ inputs.molecula }}
+      EXCLUIR: ${{ inputs.excluir }}
+      UNIDAD_VERIFICADORA: ${{ inputs.unidad_verificadora }}
+      KICKOFF: ${{ inputs.kickoff }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,18 +64,26 @@ jobs:
       - name: Generar el plan de trabajo
         run: |
           python generate.py \
-            --contribuyente "${{ inputs.contribuyente }}" \
-            --instalaciones "${{ inputs.instalaciones }}" \
-            --molecula "${{ inputs.molecula }}" \
-            --excluir "${{ inputs.excluir }}" \
-            --unidad-verificadora "${{ inputs.unidad_verificadora }}" \
-            --kickoff "${{ inputs.kickoff }}" \
+            --contribuyente "$CONTRIBUYENTE" \
+            --instalaciones "$INSTALACIONES" \
+            --molecula "$MOLECULA" \
+            --excluir "$EXCLUIR" \
+            --unidad-verificadora "$UNIDAD_VERIFICADORA" \
+            --kickoff "$KICKOFF" \
             --out-dir output
+
+      - name: Calcular slug y URL de Pages
+        id: meta
+        run: |
+          SLUG=$(python -c "from generate import slugify; import os; print(slugify(os.environ['CONTRIBUYENTE']))")
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+          echo "url=https://${GITHUB_REPOSITORY_OWNER}.github.io/${REPO_NAME}/${SLUG}/" >> "$GITHUB_OUTPUT"
 
       - name: Publicar el plan como artefacto descargable
         uses: actions/upload-artifact@v4
         with:
-          name: plan-de-trabajo-${{ inputs.contribuyente }}
+          name: plan-de-trabajo-${{ steps.meta.outputs.slug }}
           path: output/*.html
           retention-days: 90
 
@@ -74,7 +91,7 @@ jobs:
         if: ${{ inputs.publicar_en_pages }}
         run: |
           ARCHIVO=$(ls output/*.html | head -n 1)
-          python publish_docs.py "$ARCHIVO" "${{ inputs.contribuyente }}"
+          python publish_docs.py "$ARCHIVO" "$CONTRIBUYENTE"
 
       - name: Commit y push a docs/
         if: ${{ inputs.publicar_en_pages }}
@@ -85,6 +102,26 @@ jobs:
           if git diff --cached --quiet; then
             echo "Sin cambios en docs/, nada que publicar."
           else
-            git commit -m "Publicar plan: ${{ inputs.contribuyente }}"
+            git commit -m "Publicar plan: $CONTRIBUYENTE"
             git push
           fi
+
+      - name: Agregar enlace al resumen del job
+        if: ${{ inputs.publicar_en_pages }}
+        run: |
+          {
+            echo "### 📄 Plan de trabajo publicado"
+            echo ""
+            echo "**[Abrir plan de $CONTRIBUYENTE](${{ steps.meta.outputs.url }})**"
+            echo ""
+            echo "_GitHub Pages puede tardar uno o dos minutos en reflejar este cambio la primera vez._"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Agregar nota al resumen (solo artefacto)
+        if: ${{ !inputs.publicar_en_pages }}
+        run: |
+          {
+            echo "### 📦 Plan generado (sin publicar en Pages)"
+            echo ""
+            echo "Descárgalo desde la sección **Artifacts** de esta ejecución, arriba en esta misma página."
+          } >> "$GITHUB_STEP_SUMMARY"
