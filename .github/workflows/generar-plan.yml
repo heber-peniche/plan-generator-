@@ -1,0 +1,66 @@
+name: Generar plan de trabajo
+
+on:
+  workflow_dispatch:
+    inputs:
+      contribuyente:
+        description: "Contribuyente (nombre de la empresa)"
+        required: true
+        type: string
+      instalaciones:
+        description: "Número de instalaciones (ej. 4) o nombres separados por comas"
+        required: true
+        default: "1"
+        type: string
+      molecula:
+        description: "Molécula / producto"
+        required: false
+        default: "Gas L.P."
+        type: string
+      excluir:
+        description: "Partidas a excluir, separadas por comas (ej. Certificación). Vacío = ninguna"
+        required: false
+        default: ""
+        type: string
+      unidad_verificadora:
+        description: "Unidad verificadora del proyecto"
+        required: false
+        default: "VICER"
+        type: string
+      kickoff:
+        description: "Fecha de kickoff (YYYY-MM-DD), o 'general, Instalación: fecha' para excepciones"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  generar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Generar el plan de trabajo
+        run: |
+          python generate.py \
+            --contribuyente "${{ inputs.contribuyente }}" \
+            --instalaciones "${{ inputs.instalaciones }}" \
+            --molecula "${{ inputs.molecula }}" \
+            --excluir "${{ inputs.excluir }}" \
+            --unidad-verificadora "${{ inputs.unidad_verificadora }}" \
+            --kickoff "${{ inputs.kickoff }}" \
+            --out-dir output
+
+      - name: Publicar el plan como artefacto descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan-de-trabajo-${{ inputs.contribuyente }}
+          path: output/*.html
+          retention-days: 90
