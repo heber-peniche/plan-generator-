@@ -109,11 +109,50 @@ El workflow no hace commit del HTML generado al repositorio (los planes contiene
 datos reales de clientes); solo lo publica como artefacto de esa ejecución, que
 solo pueden descargar quienes tengan acceso al repositorio.
 
-## Publicar como portafolio (GitHub Pages / Vercel / Netlify)
+## Publicar y compartir como página web (GitHub Pages)
 
-Los archivos de `output/` son estáticos: basta con subir la carpeta `output/` (o
-todo el repo) a GitHub Pages, Vercel o Netlify. Para un futuro selector de
-plantillas o formulario web, el mismo `generate.py` puede exponerse detrás de un
-formulario (Flask/FastAPI) o reescribirse su lógica de armado de `client_json` en
-JavaScript para correr 100% en el navegador (el `plan_template.html` ya no
-depende de Python para nada en tiempo de ejecución).
+⚠️ **Antes de activar esto:** en una cuenta personal de GitHub (no Enterprise),
+el sitio de GitHub Pages es **público** aunque el repositorio sea privado —
+cualquiera con el link puede verlo, no hay control de acceso real. Hacer el
+repo privado solo oculta el código fuente, no el sitio publicado. Si los planes
+contienen datos sensibles de clientes, evalúa si esto es aceptable antes de
+publicar; la alternativa sin este riesgo es usar solo el artefacto descargable
+del workflow (requiere login de GitHub con acceso al repo).
+
+### Configuración (una sola vez)
+
+1. En GitHub → **Settings → Pages** → en "Build and deployment", **Source:
+   Deploy from a branch** → **Branch: `main`, folder: `/docs`** → **Save**.
+2. (Opcional) **Settings → General → Danger Zone → Change visibility** para
+   hacer el repo privado — recuerda que esto no oculta el sitio de Pages, ver
+   el aviso arriba.
+
+### Publicar un plan
+
+El workflow **"Generar plan de trabajo"** ya incluye un input
+`publicar_en_pages` (activado por default): al correrlo, además de generar el
+HTML y subirlo como artefacto, lo copia a `docs/<cliente>/index.html`, regenera
+`docs/index.html` (un índice con links a todos los planes publicados) y hace
+commit + push automático de esos cambios. GitHub Pages redeploya solo.
+
+El plan queda visible en:
+
+```
+https://heber-peniche.github.io/plan-generator-/<cliente>/
+```
+
+Para generarlo y publicarlo desde tu máquina en vez de Actions:
+
+```bash
+python generate.py --contribuyente "General Motors" --instalaciones 4 \
+  --molecula "Gas Natural" --excluir Certificación \
+  --unidad-verificadora MG3 --kickoff 2026-09-07 --out-dir output
+
+python publish_docs.py output/general-motors-plan-de-trabajo.html "General Motors"
+
+git add docs/ && git commit -m "Publicar plan: General Motors" && git push
+```
+
+Si en un run no quieres publicar (ej. cliente muy sensible), pon
+`publicar_en_pages` en `false` al correr el workflow — el HTML seguirá
+disponible como artefacto descargable, sin tocar `docs/`.

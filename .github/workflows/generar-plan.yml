@@ -31,9 +31,14 @@ on:
         description: "Fecha de kickoff (YYYY-MM-DD), o 'general, Instalación: fecha' para excepciones"
         required: true
         type: string
+      publicar_en_pages:
+        description: "Publicar también en GitHub Pages (docs/). Si no, solo queda como artefacto descargable"
+        required: false
+        default: true
+        type: boolean
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   generar:
@@ -64,3 +69,22 @@ jobs:
           name: plan-de-trabajo-${{ inputs.contribuyente }}
           path: output/*.html
           retention-days: 90
+
+      - name: Publicar en docs/ (GitHub Pages)
+        if: ${{ inputs.publicar_en_pages }}
+        run: |
+          ARCHIVO=$(ls output/*.html | head -n 1)
+          python publish_docs.py "$ARCHIVO" "${{ inputs.contribuyente }}"
+
+      - name: Commit y push a docs/
+        if: ${{ inputs.publicar_en_pages }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/
+          if git diff --cached --quiet; then
+            echo "Sin cambios en docs/, nada que publicar."
+          else
+            git commit -m "Publicar plan: ${{ inputs.contribuyente }}"
+            git push
+          fi
