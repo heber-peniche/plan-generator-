@@ -1,0 +1,4 @@
+# Solo necesario para --matriz-excel (importar la hoja "Matriz de
+# Responsabilidades" de un Excel). El resto del generador no tiene
+# dependencias externas.
+openpyxl

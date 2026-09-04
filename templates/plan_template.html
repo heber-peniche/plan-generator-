@@ -43,6 +43,7 @@
   #toolbar button { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.4px; color: #fff; background: var(--accent); border: none; border-radius: 50px; padding: 9px 18px; cursor: pointer; }
   #toolbar button:hover { background: var(--accent-dk); }
   .avoid-break { break-inside: avoid-page; page-break-inside: avoid; }
+  .print-only { display: none; }
   @media print {
     #toolbar, .vol-tabs { display: none !important; }
     * { box-shadow: none !important; }
@@ -51,6 +52,9 @@
        en sus hijos al paginar — se libera solo al imprimir (las esquinas
        redondeadas dejan de recortarse, pero la partida ya no se corte entre hojas). */
     .partidas-card { overflow: visible !important; }
+    /* La matriz de responsabilidad siempre sale como página extra del PDF,
+       aunque en pantalla no sea la pestaña activa. */
+    .print-only { display: block !important; break-before: page; page-break-before: always; }
   }
 </style>
 </head>
@@ -341,7 +345,9 @@ const PARTIDAS_DATA = {{ partidas_json }};
       const uv = this.uv();
       const contribuyente = this.contribuyente();
       const esGeneral = this.state.tab === "general";
-      const activa = esGeneral ? null : (insts.filter(i => i.key === this.state.tab)[0] || insts[0]);
+      const hayMatriz = !!(this.client.matriz && this.client.matriz.filas && this.client.matriz.filas.length);
+      const esMatriz = hayMatriz && this.state.tab === "matriz";
+      const activa = (esGeneral || esMatriz) ? null : (insts.filter(i => i.key === this.state.tab)[0] || insts[0]);
       const plan = this.planKickoff();
 
       let total = 0, hechas = 0, subTotal = 0, subHechas = 0, valor = 0;
@@ -412,6 +418,9 @@ const PARTIDAS_DATA = {{ partidas_json }};
       // Tabs
       html.push('<div class="vol-tabs" style="display:flex;gap:6px;margin:26px 0 24px;border-bottom:1.5px solid var(--line);align-items:flex-end;flex-wrap:wrap">');
       html.push('<div class="tab' + (esGeneral ? " active" : "") + '" data-action="tab-select" data-tab="general">General</div>');
+      if (hayMatriz) {
+        html.push('<div class="tab' + (esMatriz ? " active" : "") + '" data-action="tab-select" data-tab="matriz">Matriz de responsabilidad</div>');
+      }
       insts.forEach(inst => {
         const done = inst.partidas.filter(p => this.estado(inst.key, p.id) === "completada").length;
         const editing = this.state.editando === inst.key;
@@ -429,8 +438,17 @@ const PARTIDAS_DATA = {{ partidas_json }};
 
       if (esGeneral) {
         html.push(this.renderGeneral(insts, pctNum, pct, subHechas, subTotal, hechas, total, atrasoMax, atrasoDe));
+      } else if (esMatriz) {
+        html.push(this.renderMatrizResp());
       } else if (activa) {
         html.push(this.renderInstalacion(activa));
+      }
+
+      // La Matriz de responsabilidad siempre se incluye como página extra al
+      // exportar a PDF, sin importar qué pestaña esté activa en pantalla
+      // (salvo que ya sea la que se está mostrando, para no duplicarla).
+      if (hayMatriz && !esMatriz) {
+        html.push('<div class="print-only">' + this.renderMatrizResp() + '</div>');
       }
 
       html.push('</div>');
@@ -560,6 +578,65 @@ const PARTIDAS_DATA = {{ partidas_json }};
       let n = 0;
       inst.partidas.forEach(p => n += this.conteo(inst.key, p));
       return n;
+    }
+
+    raciChip(letra) {
+      const l = String(letra || "").trim().toUpperCase();
+      if (!l) return '<span style="color:var(--line)">—</span>';
+      const map = {
+        R: ["var(--accent)", "#fff", "var(--accent)"],
+        A: ["var(--accent-lt)", "var(--accent-dk)", "var(--accent)"],
+        C: ["var(--surface)", "var(--text2)", "var(--line)"],
+        I: ["#fff", "var(--text3)", "var(--line)"]
+      }[l] || ["var(--surface)", "var(--text2)", "var(--line)"];
+      return '<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;font-size:11px;font-weight:800;background:' + map[0] + ';color:' + map[1] + ';border:1.5px solid ' + map[2] + '">' + esc(l) + '</span>';
+    }
+
+    renderMatrizResp() {
+      const m = this.client.matriz || {};
+      const cols = m.columnas || [];
+      const filas = m.filas || [];
+      const out = [];
+      out.push('<div data-screen-label="Matriz de responsabilidad" style="display:flex;flex-direction:column;gap:22px">');
+
+      if (!filas.length) {
+        out.push('<div style="font-size:12px;color:var(--text3)">No hay matriz de responsabilidad cargada para este cliente.</div></div>');
+        return out.join("");
+      }
+
+      const gridCols = "minmax(220px,1.6fr) 120px " + cols.map(() => "minmax(74px,1fr)").join(" ");
+
+      out.push('<div class="partidas-card" style="border:1.5px solid var(--line);border-radius:14px;overflow:auto">');
+      out.push('<div style="min-width:' + (360 + cols.length * 84) + 'px">');
+      out.push('<div style="display:grid;grid-template-columns:' + gridCols + ';gap:10px;align-items:end;padding:12px 18px;background:var(--primary)">');
+      out.push('<div style="font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,0.6)">Tarea</div>');
+      out.push('<div style="font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,0.6)">Responsable</div>');
+      cols.forEach(c => out.push('<div style="font-size:9px;font-weight:800;letter-spacing:0.4px;text-transform:uppercase;color:rgba(255,255,255,0.75);line-height:1.3">' + esc(c) + '</div>'));
+      out.push('</div>');
+      filas.forEach((fila, i) => {
+        out.push('<div class="avoid-break" style="display:grid;grid-template-columns:' + gridCols + ';gap:10px;align-items:center;padding:12px 18px;border-top:1px solid var(--line);background:' + (i % 2 ? "var(--surface)" : "#fff") + '">');
+        out.push('<div style="font-size:12px;font-weight:600;color:var(--primary);line-height:1.4">' + esc(fila.tarea) + '</div>');
+        out.push('<div style="font-size:10px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;color:var(--text3)">' + esc(fila.responsable || "") + '</div>');
+        (fila.valores || []).forEach(v => out.push('<div style="text-align:center">' + this.raciChip(v) + '</div>'));
+        out.push('</div>');
+      });
+      out.push('</div></div>');
+
+      if (m.leyenda && m.leyenda.length) {
+        out.push('<div class="avoid-break" style="border:1.5px solid var(--line);border-radius:14px;padding:22px 24px;box-shadow:0 2px 10px rgba(0,0,0,0.04)">');
+        out.push('<div style="font-size:14px;font-weight:800;padding-bottom:14px;border-bottom:1px solid var(--line)">Leyenda RACI</div>');
+        out.push('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:16px">');
+        m.leyenda.forEach(l => {
+          out.push('<div style="display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start">');
+          out.push('<div>' + this.raciChip(l.letra) + '</div>');
+          out.push('<div><div style="font-size:12px;font-weight:700;color:var(--primary)">' + esc(l.titulo) + '</div><div style="font-size:11px;color:var(--text3);line-height:1.45;margin-top:2px">' + esc(l.descripcion || "") + '</div></div>');
+          out.push('</div>');
+        });
+        out.push('</div></div>');
+      }
+
+      out.push('</div>');
+      return out.join("");
     }
 
     renderInstalacion(activa) {

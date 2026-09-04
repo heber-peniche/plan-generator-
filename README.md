@@ -14,6 +14,7 @@ generator/
     plan_template.html     # plantilla única: CSS + lógica de negocio en JS vanilla
   data/
     partidas.json           # estructura fija de partidas/subtareas (de la plantilla Excel)
+  requirements.txt          # solo openpyxl, solo si usas --matriz-excel
 output/
   <cliente>-plan-de-trabajo.html   # un archivo por cliente, lo que se entrega
 ```
@@ -65,12 +66,41 @@ Si el nombre de una excepción de kickoff coincide con más de una instalación,
 plan generado muestra una banda de advertencia ("Fecha de kickoff ambigua") y
 todas conservan la fecha general — la misma regla que ya usaba la plantilla original.
 
+### Matriz de responsabilidad (RACI) — opcional
+
+Si el cliente tiene un Excel con la hoja "Matriz de Responsabilidades" (mismo
+formato que "Template - Plan de trabajo y Matriz Responsabilidad - Controles
+Volumetricos.xlsx": columna A = tarea, columna B = asignado a, columnas C en
+adelante = roles con letras R/A/C/I, y al final una leyenda), se puede importar
+con `--matriz-excel`:
+
+```bash
+python generate.py --contribuyente "General Motors" --instalaciones 4 \
+  --molecula "Gas Natural" --excluir Certificación \
+  --unidad-verificadora MG3 --kickoff 2026-09-07 \
+  --matriz-excel "GM - Matriz Responsabilidad.xlsx"
+```
+
+Esto requiere `pip install -r requirements.txt` (openpyxl) — es la única
+dependencia externa de todo el generador, y solo hace falta si usas esta
+opción. Sin `--matriz-excel`, el plan se genera igual que siempre, sin la
+pestaña extra.
+
+Las letras se toman literalmente de donde estén capturadas en el Excel (no se
+asume que siempre estén en la fila de la partida "padre" — si en el Excel del
+cliente el RACI de una partida quedó capturado en una subtarea en particular,
+así se refleja).
+
 ## El archivo entregado (deliverable)
 
 Cada `output/<cliente>-plan-de-trabajo.html` es 100% autónomo:
 
 - Pestaña **General** con anillo de avance ponderado, semanas de atraso y bloques de
   partidas completadas/pendientes.
+- Pestaña **Matriz de responsabilidad** (solo si se generó con `--matriz-excel`):
+  tabla RACI por tarea con una columna por rol y su leyenda. Al exportar a PDF,
+  esta pestaña se incluye siempre como página adicional, sin importar cuál esté
+  activa en pantalla en ese momento.
 - Una pestaña por instalación, con su propio anillo, kickoff, molécula y tabla de
   partidas con subtareas expandibles.
 - El estado se captura por subtarea con clic (pendiente → en proceso → completada);
