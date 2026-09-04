@@ -44,6 +44,11 @@
   #toolbar button:hover { background: var(--accent-dk); }
   .avoid-break { break-inside: avoid-page; page-break-inside: avoid; }
   .print-only { display: none; }
+  /* Sin esto, Chrome dibuja su propio encabezado/pie de página (URL, fecha,
+     "página X de Y") en el margen de cada hoja impresa. Al no dejarle espacio
+     de margen, no tiene dónde pintarlos. El respiro visual del contenido ya
+     lo da el padding propio del contenedor interno, así que no se pierde nada. */
+  @page { margin: 0; }
   @media print {
     #toolbar, .vol-tabs { display: none !important; }
     * { box-shadow: none !important; }
