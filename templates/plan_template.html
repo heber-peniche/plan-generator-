@@ -42,6 +42,7 @@
   #toolbar { position: sticky; top: 0; z-index: 20; display: flex; justify-content: flex-end; padding: 10px 20px; background: #fff; border-bottom: 1px solid var(--line); }
   #toolbar button { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.4px; color: #fff; background: var(--accent); border: none; border-radius: 50px; padding: 9px 18px; cursor: pointer; }
   #toolbar button:hover { background: var(--accent-dk); }
+  .avoid-break { break-inside: avoid; page-break-inside: avoid; }
   @media print {
     #toolbar, .vol-tabs { display: none !important; }
     * { box-shadow: none !important; }
@@ -526,7 +527,7 @@ const PARTIDAS_DATA = {{ partidas_json }};
       out.push('<div style="display:flex;flex-direction:column;gap:14px;margin-top:16px">');
       if (!completadas.length) out.push('<div style="font-size:12px;color:var(--text3)">Aún no hay partidas completadas.</div>');
       completadas.forEach(c => {
-        out.push('<div style="display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start">');
+        out.push('<div class="avoid-break" style="display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start">');
         out.push('<div style="width:22px;height:22px;border-radius:50%;background:var(--green-bg);border:1px solid var(--green-line);color:var(--green-dk);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800">✓</div>');
         out.push('<div><div style="font-size:13px;font-weight:600">' + esc(c.label) + '</div><div style="font-size:11px;font-style:italic;color:var(--text3)">' + esc(c.detalle) + '</div></div></div>');
       });
@@ -539,7 +540,7 @@ const PARTIDAS_DATA = {{ partidas_json }};
       out.push('<div style="display:flex;flex-direction:column;gap:14px;margin-top:16px">');
       if (!pendientes.length) out.push('<div style="font-size:12px;color:var(--text3)">Todas las partidas están completadas.</div>');
       pendientes.forEach(p => {
-        out.push('<div style="display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start">');
+        out.push('<div class="avoid-break" style="display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start">');
         out.push('<div style="width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;background:var(--surface);border:1px solid var(--line);color:var(--text3)">·</div>');
         out.push('<div><div style="font-size:13px;font-weight:600">' + esc(p.label) + '</div><div style="display:flex;flex-direction:column;gap:4px;margin-top:4px">');
         p.grupos.forEach(g => out.push('<div>' + g + '</div>'));
@@ -620,7 +621,7 @@ const PARTIDAS_DATA = {{ partidas_json }};
         const sello = est === "completada" && this.state.sellos[activa.key + ":" + p.id]
           ? "Completada el " + fechaCorta(this.state.sellos[activa.key + ":" + p.id]) : "";
 
-        out.push('<div style="border-top:1px solid var(--line);background:' + (est === "completada" ? "rgba(13,155,106,0.04)" : "#fff") + '">');
+        out.push('<div class="avoid-break" style="border-top:1px solid var(--line);background:' + (est === "completada" ? "rgba(13,155,106,0.04)" : "#fff") + '">');
         out.push('<div style="display:grid;grid-template-columns:34px minmax(160px,1fr) 110px 120px 130px 110px;gap:14px;align-items:center;padding:16px 22px">');
         out.push('<div style="width:26px;height:26px;background:var(--accent);transform:rotate(45deg);display:flex;align-items:center;justify-content:center"><span style="transform:rotate(-45deg);font-size:12px;font-weight:900;color:#fff">' + p.id + '</span></div>');
         out.push('<div style="cursor:pointer;display:grid;grid-template-columns:14px minmax(0,1fr);gap:8px;align-items:baseline;min-width:0" data-action="partida-toggle" data-key="' + activa.key + '" data-pid="' + p.id + '">');
@@ -644,7 +645,7 @@ const PARTIDAS_DATA = {{ partidas_json }};
           p.subtareas.forEach(s => {
             const se = this.estadoSub(activa.key, p.id, s.id);
             const hecho = se === "completada", curso = se === "proceso";
-            out.push('<div style="display:grid;grid-template-columns:20px 38px minmax(140px,1fr) 100px 110px;gap:12px;align-items:baseline;padding-top:9px">');
+            out.push('<div class="avoid-break" style="display:grid;grid-template-columns:20px 38px minmax(140px,1fr) 100px 110px;gap:12px;align-items:baseline;padding-top:9px">');
             out.push('<div class="checkbox ' + se + '" data-action="subtarea-toggle" data-key="' + activa.key + '" data-pid="' + p.id + '" data-sid="' + s.id + '" title="Clic para cambiar el estado">' + (hecho ? "✓" : (curso ? "·" : "")) + '</div>');
             out.push('<div style="font-size:10px;font-weight:800;color:var(--accent-dk)">' + s.id + '</div>');
             out.push('<div data-action="subtarea-toggle" data-key="' + activa.key + '" data-pid="' + p.id + '" data-sid="' + s.id + '" style="cursor:pointer;font-size:12px;font-weight:' + (curso ? 600 : 400) + ';color:' + (hecho ? "var(--green-dk)" : curso ? "var(--primary)" : "var(--text3)") + '">' + esc(this.txt(s.nombre)) + '</div>');
