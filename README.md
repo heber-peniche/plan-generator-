@@ -13,21 +13,26 @@ generator/
   templates/
     plan_template.html     # plantilla única: CSS + lógica de negocio en JS vanilla
   data/
-    partidas.json           # estructura fija de partidas/subtareas (de la plantilla Excel)
-  requirements.txt          # solo openpyxl, solo si usas --matriz-excel
+    partidas.json                    # estructura fija de partidas/subtareas (del Excel de plan de trabajo)
+    matriz_responsabilidad.json      # matriz RACI fija (del Excel de matriz de responsabilidad)
 output/
   <cliente>-plan-de-trabajo.html   # un archivo por cliente, lo que se entrega
 ```
 
-- **Datos** (`data/partidas.json`) y **plantilla/lógica** (`templates/plan_template.html`)
-  están separados del **script de generación** (`generate.py`), para que cambiar las
-  partidas o el diseño no toque el generador.
+- **Datos** (`data/partidas.json`, `data/matriz_responsabilidad.json`) y
+  **plantilla/lógica** (`templates/plan_template.html`) están separados del
+  **script de generación** (`generate.py`), para que cambiar las partidas, la
+  matriz o el diseño no toque el generador.
 - La plantilla no usa frameworks: un solo archivo con `<style>` y `<script>` inline.
-  El script de Python solo reemplaza dos placeholders (`{{ client_json }}`,
-  `{{ partidas_json }}`) con los datos del cliente — no hay build step.
-- Las partidas (A–E), sus subtareas y duraciones son fijas para todos los clientes
-  (vienen del Excel "Template - Plan de trabajo y Matriz Responsabilidad"); lo único
-  que cambia por cliente son los 6 datos de entrada.
+  El script de Python solo reemplaza tres placeholders (`{{ client_json }}`,
+  `{{ partidas_json }}`, `{{ matriz_json }}`) con los datos — no hay build step.
+- Las partidas (A–E) con sus subtareas y duraciones, y la matriz de
+  responsabilidad (RACI), son fijas para todos los clientes — vienen de los
+  Excel de origen ("Template - Plan de trabajo y Matriz Responsabilidad" /
+  "GENERAL MOTORS - Agenda de Implementación y Matriz Responsabilidad") y ya
+  quedaron transcritas a `data/*.json`. Lo único que cambia por cliente son
+  los 6 datos de entrada; el generador no lee ningún Excel en tiempo de
+  ejecución ni tiene dependencias externas.
 
 ## Uso
 
@@ -66,30 +71,14 @@ Si el nombre de una excepción de kickoff coincide con más de una instalación,
 plan generado muestra una banda de advertencia ("Fecha de kickoff ambigua") y
 todas conservan la fecha general — la misma regla que ya usaba la plantilla original.
 
-### Matriz de responsabilidad (RACI) — opcional
+### Matriz de responsabilidad (RACI)
 
-Si el cliente tiene un Excel con la hoja "Matriz de Responsabilidades" (mismo
-formato que "Template - Plan de trabajo y Matriz Responsabilidad - Controles
-Volumetricos.xlsx": columna A = tarea, columna B = asignado a, columnas C en
-adelante = roles con letras R/A/C/I, y al final una leyenda), se puede importar
-con `--matriz-excel`:
-
-```bash
-python generate.py --contribuyente "General Motors" --instalaciones 4 \
-  --molecula "Gas Natural" --excluir Certificación \
-  --unidad-verificadora MG3 --kickoff 2026-09-07 \
-  --matriz-excel "GM - Matriz Responsabilidad.xlsx"
-```
-
-Esto requiere `pip install -r requirements.txt` (openpyxl) — es la única
-dependencia externa de todo el generador, y solo hace falta si usas esta
-opción. Sin `--matriz-excel`, el plan se genera igual que siempre, sin la
-pestaña extra.
-
-Las letras se toman literalmente de donde estén capturadas en el Excel (no se
-asume que siempre estén en la fila de la partida "padre" — si en el Excel del
-cliente el RACI de una partida quedó capturado en una subtarea en particular,
-así se refleja).
+`data/matriz_responsabilidad.json` contiene la matriz RACI (roles, tareas y
+letras R/A/C/I, más la leyenda) transcrita del Excel "GENERAL MOTORS - Agenda
+de Implementación y Matriz Responsabilidad": es dato fijo, igual que
+`partidas.json` — se inyecta en todos los planes generados, sin necesidad de
+ningún flag ni de leer un Excel en cada corrida. Para actualizar su contenido
+(otros roles, otras letras), edita directamente ese JSON.
 
 ## El archivo entregado (deliverable)
 
@@ -97,10 +86,9 @@ Cada `output/<cliente>-plan-de-trabajo.html` es 100% autónomo:
 
 - Pestaña **General** con anillo de avance ponderado, semanas de atraso y bloques de
   partidas completadas/pendientes.
-- Pestaña **Matriz de responsabilidad** (solo si se generó con `--matriz-excel`):
-  tabla RACI por tarea con una columna por rol y su leyenda. Al exportar a PDF,
-  esta pestaña se incluye siempre como página adicional, sin importar cuál esté
-  activa en pantalla en ese momento.
+- Pestaña **Matriz de responsabilidad**: tabla RACI por tarea con una columna
+  por rol y su leyenda. Al exportar a PDF, esta pestaña se incluye siempre como
+  página adicional, sin importar cuál esté activa en pantalla en ese momento.
 - Una pestaña por instalación, con su propio anillo, kickoff, molécula y tabla de
   partidas con subtareas expandibles.
 - El estado se captura por subtarea con clic (pendiente → en proceso → completada);

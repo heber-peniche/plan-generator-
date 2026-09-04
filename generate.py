@@ -15,13 +15,12 @@ Uso no interactivo:
         --molecula "Gas Natural" --excluir Certificación \
         --unidad-verificadora MG3 --kickoff 2026-09-07
 
-Las partidas fijas (A-E, con sus subtareas y duraciones) viven en
-data/partidas.json y no cambian entre clientes — están tomadas del Excel
-"Template - Plan de trabajo y Matriz Responsabilidad - Controles Volumetricos".
-
-Opcionalmente, --matriz-excel importa la hoja "Matriz de Responsabilidades" de
-ese mismo Excel (RACI por tarea) y agrega una pestaña extra al plan generado.
-Requiere `pip install openpyxl` (no es una dependencia del resto del script).
+Las partidas fijas (A-E, con sus subtareas y duraciones) y la matriz de
+responsabilidad (RACI) viven en data/partidas.json y
+data/matriz_responsabilidad.json, y no cambian entre clientes — están
+tomadas del Excel "Template - Plan de trabajo y Matriz Responsabilidad -
+Controles Volumetricos" / "GENERAL MOTORS - Agenda de Implementación y
+Matriz Responsabilidad".
 """
 import argparse
 import json
@@ -33,6 +32,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 TEMPLATE_PATH = BASE_DIR / "templates" / "plan_template.html"
 PARTIDAS_PATH = BASE_DIR / "data" / "partidas.json"
+MATRIZ_PATH = BASE_DIR / "data" / "matriz_responsabilidad.json"
 OUTPUT_DIR = BASE_DIR.parent / "output"
 
 # id de partida -> nombres/alias reconocidos para "partidas a excluir"
@@ -94,84 +94,8 @@ def slugify(s: str) -> str:
     return re.sub(r"\s+", "-", s).strip("-") or "cliente"
 
 
-LETRAS_RACI = {"R", "A", "C", "I"}
-
-
-def parse_matriz_excel(path: Path) -> dict:
-    """
-    Lee la hoja "Matriz de Responsabilidades" del Excel de plan de trabajo
-    (mismo layout que "Template - Plan de trabajo y Matriz Responsabilidad -
-    Controles Volumetricos.xlsx"): fila de encabezado con "TASK" en A, columnas
-    de roles a partir de C, filas de tarea con letras R/A/C/I, y al final una
-    leyenda con una letra por fila en la columna B.
-
-    No asume que las letras estén siempre en la fila de la partida "padre":
-    se toma literalmente cualquier fila con texto en la columna A que tenga
-    al menos una letra RACI asignada, tal como esté capturado en el Excel.
-    """
-    try:
-        import openpyxl
-    except ImportError as e:
-        raise RuntimeError(
-            "Para usar --matriz-excel instala openpyxl primero: pip install openpyxl"
-        ) from e
-
-    wb = openpyxl.load_workbook(path, data_only=True)
-    nombre_hoja = next((s for s in wb.sheetnames if "matriz" in _norm(s)), None)
-    if not nombre_hoja:
-        raise ValueError(
-            f"No encontré una hoja de 'Matriz de responsabilidad' en {path.name} "
-            f"(hojas disponibles: {', '.join(wb.sheetnames)})"
-        )
-    ws = wb[nombre_hoja]
-
-    fila_encabezado = None
-    for row in ws.iter_rows(min_row=1, max_row=15):
-        if row[0].value and str(row[0].value).strip().upper() == "TASK":
-            fila_encabezado = row[0].row
-            break
-    if fila_encabezado is None:
-        raise ValueError(f"No encontré la fila de encabezado ('TASK' en la columna A) en la hoja '{nombre_hoja}'.")
-
-    columnas, columnas_idx = [], []
-    for col in range(3, ws.max_column + 1):
-        val = ws.cell(row=fila_encabezado, column=col).value
-        texto = str(val).strip() if val not in (None, "") else ""
-        if texto:
-            columnas.append(texto)
-            columnas_idx.append(col)
-
-    filas, leyenda = [], []
-    for r in range(fila_encabezado + 1, ws.max_row + 1):
-        tarea = ws.cell(row=r, column=1).value
-        asignado = ws.cell(row=r, column=2).value
-        valores = [ws.cell(row=r, column=c).value for c in columnas_idx]
-        valores_txt = [str(v).strip() if v not in (None, "") else "" for v in valores]
-
-        if tarea and any(valores_txt):
-            filas.append({
-                "tarea": str(tarea).strip(),
-                "responsable": str(asignado).strip() if asignado not in (None, "") else "",
-                "valores": valores_txt,
-            })
-        elif not tarea and asignado and str(asignado).strip().upper() in LETRAS_RACI:
-            titulo = ws.cell(row=r, column=3).value
-            descripcion = ws.cell(row=r, column=4).value
-            if titulo:
-                leyenda.append({
-                    "letra": str(asignado).strip().upper(),
-                    "titulo": str(titulo).strip(),
-                    "descripcion": str(descripcion).strip() if descripcion not in (None, "") else "",
-                })
-
-    if not filas:
-        raise ValueError(f"La hoja '{nombre_hoja}' no tiene filas con letras RACI capturadas.")
-
-    return {"columnas": columnas, "filas": filas, "leyenda": leyenda}
-
-
 def construir_client_data(contribuyente, instalaciones_raw, molecula, excluir_raw,
-                           unidad_verificadora, kickoff, matriz=None):
+                           unidad_verificadora, kickoff):
     instalaciones = resolver_instalaciones(instalaciones_raw)
     excluir_ids = resolver_partidas_excluir(
         excluir_raw if isinstance(excluir_raw, list) else re.split(r"[,;]", excluir_raw or "")
@@ -181,7 +105,7 @@ def construir_client_data(contribuyente, instalaciones_raw, molecula, excluir_ra
         for i in range(len(instalaciones)):
             overrides[str(i)] = {"excluir": excluir_ids}
 
-    client_data = {
+    return {
         "contribuyente": contribuyente.strip(),
         "unidadVerificadora": unidad_verificadora.strip(),
         "moleculaGeneral": molecula.strip(),
@@ -192,18 +116,18 @@ def construir_client_data(contribuyente, instalaciones_raw, molecula, excluir_ra
         # "+ Instalación"), para que hereden la misma exclusión que las demás.
         "excluirGeneral": excluir_ids,
     }
-    if matriz:
-        client_data["matriz"] = matriz
-    return client_data
 
 
 def render(client_data: dict) -> str:
     template = TEMPLATE_PATH.read_text(encoding="utf-8")
     partidas_data = json.loads(PARTIDAS_PATH.read_text(encoding="utf-8"))
+    matriz_data = json.loads(MATRIZ_PATH.read_text(encoding="utf-8")) if MATRIZ_PATH.exists() else {}
     html = template.replace(
         "{{ client_json }}", json.dumps(client_data, ensure_ascii=False, indent=2)
     ).replace(
         "{{ partidas_json }}", json.dumps(partidas_data, ensure_ascii=False)
+    ).replace(
+        "{{ matriz_json }}", json.dumps(matriz_data, ensure_ascii=False)
     ).replace(
         "{{ contribuyente }}", client_data["contribuyente"]
     )
@@ -211,10 +135,9 @@ def render(client_data: dict) -> str:
 
 
 def generar(contribuyente, instalaciones, molecula, excluir, unidad_verificadora, kickoff,
-            out_dir: Path = OUTPUT_DIR, matriz_excel: Path = None) -> Path:
-    matriz = parse_matriz_excel(matriz_excel) if matriz_excel else None
+            out_dir: Path = OUTPUT_DIR) -> Path:
     client_data = construir_client_data(
-        contribuyente, instalaciones, molecula, excluir, unidad_verificadora, kickoff, matriz
+        contribuyente, instalaciones, molecula, excluir, unidad_verificadora, kickoff
     )
     html = render(client_data)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -232,7 +155,6 @@ def parse_args():
     p.add_argument("--unidad-verificadora", dest="unidad_verificadora", help="Ej. MG3")
     p.add_argument("--kickoff", help="Fecha de kickoff, ej. '2026-09-07' o '2026-09-07, Planta 2: 2026-10-01'")
     p.add_argument("--out-dir", default=str(OUTPUT_DIR), help="Carpeta de salida")
-    p.add_argument("--matriz-excel", help="Ruta al Excel con la hoja 'Matriz de Responsabilidades' (opcional, requiere openpyxl)")
     return p.parse_args()
 
 
@@ -252,7 +174,6 @@ def main():
         excluir = prompt("Partidas a excluir (separadas por comas, Enter si ninguna)", "")
         unidad_verificadora = prompt("Unidad verificadora del proyecto", "VICER")
         kickoff = prompt("Fecha de kickoff (YYYY-MM-DD)")
-        matriz_excel = prompt("Excel con la Matriz de Responsabilidad (Enter para omitir)", "")
         excluir_list = [s.strip() for s in excluir.split(",") if s.strip()]
     else:
         contribuyente = args.contribuyente
@@ -260,7 +181,6 @@ def main():
         molecula = args.molecula or "Gas L.P."
         unidad_verificadora = args.unidad_verificadora or "VICER"
         kickoff = args.kickoff or ""
-        matriz_excel = args.matriz_excel or ""
         excluir_list = args.excluir
 
     if not contribuyente:
@@ -273,7 +193,6 @@ def main():
     out_path = generar(
         contribuyente, instalaciones, molecula, excluir_list, unidad_verificadora, kickoff,
         out_dir=Path(args.out_dir) if hasattr(args, "out_dir") and args.out_dir else OUTPUT_DIR,
-        matriz_excel=Path(matriz_excel) if matriz_excel else None,
     )
     print(f"\nListo: {out_path}")
 

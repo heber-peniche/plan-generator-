@@ -67,6 +67,7 @@
 <script>
 const CLIENT = {{ client_json }};
 const PARTIDAS_DATA = {{ partidas_json }};
+const MATRIZ_DATA = {{ matriz_json }};
 </script>
 <script>
 (function () {
@@ -345,7 +346,7 @@ const PARTIDAS_DATA = {{ partidas_json }};
       const uv = this.uv();
       const contribuyente = this.contribuyente();
       const esGeneral = this.state.tab === "general";
-      const hayMatriz = !!(this.client.matriz && this.client.matriz.filas && this.client.matriz.filas.length);
+      const hayMatriz = !!(MATRIZ_DATA && MATRIZ_DATA.filas && MATRIZ_DATA.filas.length);
       const esMatriz = hayMatriz && this.state.tab === "matriz";
       const activa = (esGeneral || esMatriz) ? null : (insts.filter(i => i.key === this.state.tab)[0] || insts[0]);
       const plan = this.planKickoff();
@@ -593,7 +594,7 @@ const PARTIDAS_DATA = {{ partidas_json }};
     }
 
     renderMatrizResp() {
-      const m = this.client.matriz || {};
+      const m = MATRIZ_DATA || {};
       const cols = m.columnas || [];
       const filas = m.filas || [];
       const out = [];
