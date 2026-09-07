@@ -15,6 +15,9 @@ Uso no interactivo:
         --molecula "Gas Natural" --excluir Certificación \
         --unidad-verificadora MG3 --kickoff 2026-09-07
 
+Opcionalmente, --anios-historicos y --anios-certificacion cambian el rango de
+años (default "2022-2025") de las partidas B y E respectivamente.
+
 Las partidas fijas (A-E, con sus subtareas y duraciones) y la matriz de
 responsabilidad (RACI) viven en data/partidas.json y
 data/matriz_responsabilidad.json, y no cambian entre clientes — están
@@ -94,6 +97,24 @@ def slugify(s: str) -> str:
     return re.sub(r"\s+", "-", s).strip("-") or "cliente"
 
 
+ANIOS_DEFAULT = "2022-2025"
+
+
+def aplicar_anios(partidas_data: dict, anios_historicos: str, anios_certificacion: str) -> dict:
+    """Sustituye el rango de años fijo ('2022-2025') en los nombres de la
+    partida B (reportes históricos) y la partida E (certificación), incluida
+    su subtarea E.2. No toca partidas.json; devuelve una copia."""
+    data = json.loads(json.dumps(partidas_data))
+    for p in data.get("partidas", []):
+        if p["id"] == "B":
+            p["nombre"] = p["nombre"].replace(ANIOS_DEFAULT, anios_historicos)
+        elif p["id"] == "E":
+            p["nombre"] = p["nombre"].replace(ANIOS_DEFAULT, anios_certificacion)
+            for s in p.get("subtareas", []):
+                s["nombre"] = s["nombre"].replace(ANIOS_DEFAULT, anios_certificacion)
+    return data
+
+
 def construir_client_data(contribuyente, instalaciones_raw, molecula, excluir_raw,
                            unidad_verificadora, kickoff):
     instalaciones = resolver_instalaciones(instalaciones_raw)
@@ -118,9 +139,10 @@ def construir_client_data(contribuyente, instalaciones_raw, molecula, excluir_ra
     }
 
 
-def render(client_data: dict) -> str:
+def render(client_data: dict, anios_historicos: str = ANIOS_DEFAULT, anios_certificacion: str = ANIOS_DEFAULT) -> str:
     template = TEMPLATE_PATH.read_text(encoding="utf-8")
     partidas_data = json.loads(PARTIDAS_PATH.read_text(encoding="utf-8"))
+    partidas_data = aplicar_anios(partidas_data, anios_historicos.strip() or ANIOS_DEFAULT, anios_certificacion.strip() or ANIOS_DEFAULT)
     matriz_data = json.loads(MATRIZ_PATH.read_text(encoding="utf-8")) if MATRIZ_PATH.exists() else {}
     html = template.replace(
         "{{ client_json }}", json.dumps(client_data, ensure_ascii=False, indent=2)
@@ -135,11 +157,12 @@ def render(client_data: dict) -> str:
 
 
 def generar(contribuyente, instalaciones, molecula, excluir, unidad_verificadora, kickoff,
-            out_dir: Path = OUTPUT_DIR) -> Path:
+            out_dir: Path = OUTPUT_DIR,
+            anios_historicos: str = ANIOS_DEFAULT, anios_certificacion: str = ANIOS_DEFAULT) -> Path:
     client_data = construir_client_data(
         contribuyente, instalaciones, molecula, excluir, unidad_verificadora, kickoff
     )
-    html = render(client_data)
+    html = render(client_data, anios_historicos, anios_certificacion)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{slugify(contribuyente)}-plan-de-trabajo.html"
     out_path.write_text(html, encoding="utf-8")
@@ -154,6 +177,10 @@ def parse_args():
     p.add_argument("--excluir", default="", help="Partidas a excluir (ids o nombres), separadas por comas, ej. 'Certificación'")
     p.add_argument("--unidad-verificadora", dest="unidad_verificadora", help="Ej. MG3")
     p.add_argument("--kickoff", help="Fecha de kickoff, ej. '2026-09-07' o '2026-09-07, Planta 2: 2026-10-01'")
+    p.add_argument("--anios-historicos", dest="anios_historicos", default=ANIOS_DEFAULT,
+                    help=f"Años de la partida B, Generación de reportes históricos SAT (default: {ANIOS_DEFAULT})")
+    p.add_argument("--anios-certificacion", dest="anios_certificacion", default=ANIOS_DEFAULT,
+                    help=f"Años de la partida E, Certificado anual del SAT (default: {ANIOS_DEFAULT})")
     p.add_argument("--out-dir", default=str(OUTPUT_DIR), help="Carpeta de salida")
     return p.parse_args()
 
@@ -174,6 +201,8 @@ def main():
         excluir = prompt("Partidas a excluir (separadas por comas, Enter si ninguna)", "")
         unidad_verificadora = prompt("Unidad verificadora del proyecto", "VICER")
         kickoff = prompt("Fecha de kickoff (YYYY-MM-DD)")
+        anios_historicos = prompt("Años de reportes históricos SAT (partida B)", ANIOS_DEFAULT)
+        anios_certificacion = prompt("Años del certificado anual del SAT (partida E)", ANIOS_DEFAULT)
         excluir_list = [s.strip() for s in excluir.split(",") if s.strip()]
     else:
         contribuyente = args.contribuyente
@@ -181,6 +210,8 @@ def main():
         molecula = args.molecula or "Gas L.P."
         unidad_verificadora = args.unidad_verificadora or "VICER"
         kickoff = args.kickoff or ""
+        anios_historicos = args.anios_historicos or ANIOS_DEFAULT
+        anios_certificacion = args.anios_certificacion or ANIOS_DEFAULT
         excluir_list = args.excluir
 
     if not contribuyente:
@@ -193,6 +224,7 @@ def main():
     out_path = generar(
         contribuyente, instalaciones, molecula, excluir_list, unidad_verificadora, kickoff,
         out_dir=Path(args.out_dir) if hasattr(args, "out_dir") and args.out_dir else OUTPUT_DIR,
+        anios_historicos=anios_historicos, anios_certificacion=anios_certificacion,
     )
     print(f"\nListo: {out_path}")
 

@@ -71,6 +71,22 @@ Si el nombre de una excepción de kickoff coincide con más de una instalación,
 plan generado muestra una banda de advertencia ("Fecha de kickoff ambigua") y
 todas conservan la fecha general — la misma regla que ya usaba la plantilla original.
 
+### Años de reportes históricos y de certificación (opcional)
+
+Las partidas B ("Generación de reportes históricos SAT") y E ("Certificado
+anual del SAT") vienen con el rango "2022-2025" por default. Para cambiarlo:
+
+```bash
+python generate.py --contribuyente "General Motors" --instalaciones 4 \
+  --molecula "Gas Natural" --excluir Certificación \
+  --unidad-verificadora MG3 --kickoff 2026-09-07 \
+  --anios-historicos "2019-2023" --anios-certificacion "2023-2026"
+```
+
+Son independientes: `--anios-historicos` solo cambia la partida B (y su nombre
+en la vista y el PDF); `--anios-certificacion` cambia la partida E y su
+subtarea E.2. Si se omiten, ambas quedan en "2022-2025".
+
 ### Matriz de responsabilidad (RACI)
 
 `data/matriz_responsabilidad.json` contiene la matriz RACI (roles, tareas y

@@ -31,6 +31,16 @@ on:
         description: "Fecha de kickoff (YYYY-MM-DD), o 'general, Instalación: fecha' para excepciones"
         required: true
         type: string
+      anios_historicos:
+        description: "Años de la partida B, reportes históricos SAT"
+        required: false
+        default: "2022-2025"
+        type: string
+      anios_certificacion:
+        description: "Años de la partida E, certificado anual del SAT"
+        required: false
+        default: "2022-2025"
+        type: string
       publicar_en_pages:
         description: "Publicar también en GitHub Pages (docs/). Si no, solo queda como artefacto descargable"
         required: false
@@ -52,6 +62,8 @@ jobs:
       EXCLUIR: ${{ inputs.excluir }}
       UNIDAD_VERIFICADORA: ${{ inputs.unidad_verificadora }}
       KICKOFF: ${{ inputs.kickoff }}
+      ANIOS_HISTORICOS: ${{ inputs.anios_historicos }}
+      ANIOS_CERTIFICACION: ${{ inputs.anios_certificacion }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -70,6 +82,8 @@ jobs:
             --excluir "$EXCLUIR" \
             --unidad-verificadora "$UNIDAD_VERIFICADORA" \
             --kickoff "$KICKOFF" \
+            --anios-historicos "$ANIOS_HISTORICOS" \
+            --anios-certificacion "$ANIOS_CERTIFICACION" \
             --out-dir output
 
       - name: Calcular slug y URL de Pages
