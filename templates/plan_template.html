@@ -43,23 +43,39 @@
   #toolbar button { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.4px; color: #fff; background: var(--accent); border: none; border-radius: 50px; padding: 9px 18px; cursor: pointer; }
   #toolbar button:hover { background: var(--accent-dk); }
   .avoid-break { break-inside: avoid-page; page-break-inside: avoid; }
-  .print-only { display: none; }
+  /* El PDF no es "lo que se ve en pantalla": es un reporte estático propio
+     (portada + una página por instalación + matriz), armado en renderReportePDF().
+     Por eso .pdf-report vive oculto en pantalla y solo se muestra al imprimir,
+     mientras .screen-app (la app interactiva) se oculta al imprimir. */
+  .pdf-report, .pdf-header-fixed, .pdf-footer-fixed { display: none; }
   /* Sin esto, Chrome dibuja su propio encabezado/pie de página (URL, fecha,
      "página X de Y") en el margen de cada hoja impresa. Al no dejarle espacio
      de margen, no tiene dónde pintarlos. El respiro visual del contenido ya
      lo da el padding propio del contenedor interno, así que no se pierde nada. */
   @page { margin: 0; }
   @media print {
-    #toolbar, .vol-tabs { display: none !important; }
+    #toolbar { display: none !important; }
     * { box-shadow: none !important; }
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     /* overflow:hidden en un ancestro hace que Chrome ignore break-inside:avoid
        en sus hijos al paginar — se libera solo al imprimir (las esquinas
        redondeadas dejan de recortarse, pero la partida ya no se corte entre hojas). */
     .partidas-card { overflow: visible !important; }
-    /* La matriz de responsabilidad siempre sale como página extra del PDF,
-       aunque en pantalla no sea la pestaña activa. */
-    .print-only { display: block !important; break-before: page; page-break-before: always; }
+    .screen-app { display: none !important; }
+    .pdf-report { display: block !important; }
+    .pdf-page { padding: 74px 56px 60px; }
+    /* position:fixed se repite en cada hoja impresa (Chrome) — así el logo y
+       el pie de contacto salen en todas las páginas sin tener que duplicarlos. */
+    .pdf-header-fixed {
+      display: flex !important; align-items: center; gap: 10px;
+      position: fixed; top: 24px; left: 56px; right: 56px;
+      padding-bottom: 12px; border-bottom: 1px solid var(--line);
+    }
+    .pdf-footer-fixed {
+      display: flex !important; align-items: center; justify-content: space-between;
+      position: fixed; bottom: 22px; left: 56px; right: 56px;
+      padding-top: 10px; border-top: 1px solid var(--line);
+    }
   }
 </style>
 </head>
@@ -81,6 +97,7 @@ const MATRIZ_DATA = {{ matriz_json }};
   const PARTIDAS = PARTIDAS_DATA.partidas;
   const SPAN_INI = PARTIDAS_DATA.spanIni, SPAN_FIN = PARTIDAS_DATA.spanFin;
   const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  const MESES_LARGOS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
   const NIVEL = ["pendiente", "proceso", "completada"];
   const ETIQUETA = { pendiente: "Pendiente", proceso: "En proceso", completada: "Completada" };
   const VALOR = { pendiente: 0, proceso: 0.5, completada: 1 };
@@ -108,6 +125,10 @@ const MATRIZ_DATA = {{ matriz_json }};
   function fechaCorta(serial) {
     const d = new Date(Date.UTC(1899, 11, 30) + serial * 86400000), dd = n => String(n).padStart(2, "0");
     return dd(d.getUTCDate()) + "/" + dd(d.getUTCMonth() + 1) + "/" + d.getUTCFullYear();
+  }
+  function fechaCompleta(serial) {
+    const d = new Date(Date.UTC(1899, 11, 30) + serial * 86400000);
+    return d.getUTCDate() + " de " + MESES_LARGOS[d.getUTCMonth()] + " de " + d.getUTCFullYear();
   }
   function serialDe(iso) {
     const m = /^\s*(\d{4})-(\d{1,2})-(\d{1,2})/.exec(String(iso || ""));
@@ -396,7 +417,7 @@ const MATRIZ_DATA = {{ matriz_json }};
       });
 
       const html = [];
-      html.push('<div style="min-height:100vh;min-width:1000px;background:#fff;color:var(--primary);font-family:Inter,sans-serif">');
+      html.push('<div class="screen-app" style="min-height:100vh;min-width:1000px;background:#fff;color:var(--primary);font-family:Inter,sans-serif">');
       html.push('<div style="height:5px;background:linear-gradient(90deg,var(--accent),var(--accent-dk))"></div>');
       html.push('<div style="max-width:1320px;box-sizing:border-box;margin:0 auto;padding:30px 56px 56px">');
 
@@ -460,18 +481,16 @@ const MATRIZ_DATA = {{ matriz_json }};
         html.push(this.renderInstalacion(activa));
       }
 
-      // La Matriz de responsabilidad siempre se incluye como página extra al
-      // exportar a PDF, sin importar qué pestaña esté activa en pantalla
-      // (salvo que ya sea la que se está mostrando, para no duplicarla).
-      if (hayMatriz && !esMatriz) {
-        html.push('<div class="print-only">' + this.renderMatrizResp() + '</div>');
-      }
-
       html.push('</div>');
       html.push('<div style="background:var(--primary);padding:18px 56px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap">');
       html.push('<span style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,0.85)">VOLUMETRICS by AIVARA</span>');
       html.push('<span style="font-size:11px;color:rgba(255,255,255,0.6)">volumetrics.com.mx · contacto@aivara.mx</span>');
-      html.push('</div></div>');
+      html.push('</div></div>'); // cierra footer + .screen-app
+
+      // El PDF no es una foto de la pestaña activa: es un reporte propio
+      // (portada + una página por instalación + matriz), oculto en pantalla,
+      // que reemplaza a .screen-app solo durante la impresión.
+      html.push(this.renderReportePDF(insts, hayMatriz));
 
       this.root.innerHTML = html.join("");
 
@@ -618,6 +637,105 @@ const MATRIZ_DATA = {{ matriz_json }};
         I: ["#fff", "var(--text3)", "var(--line)"]
       }[l] || ["var(--surface)", "var(--text2)", "var(--line)"];
       return '<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;font-size:11px;font-weight:800;background:' + map[0] + ';color:' + map[1] + ';border:1.5px solid ' + map[2] + '">' + esc(l) + '</span>';
+    }
+
+    // El reporte que se exporta a PDF: portada con los datos del cliente y
+    // una página por instalación con sus partidas/subtareas en tablas fijas
+    // (sin estado ni checkboxes — es el documento formal, no la vista viva).
+    renderReportePDF(insts, hayMatriz) {
+      const uv = this.uv();
+      const contribuyente = this.contribuyente();
+      const plan = this.planKickoff();
+      let a = Infinity, b = -Infinity;
+      insts.forEach(i => { a = Math.min(a, i.ini); b = Math.max(b, i.fin); });
+      const ventana = isFinite(a) ? fechaLarga(a) + " → " + fechaLarga(b) : "";
+      const molsVistas = [];
+      insts.forEach(i => { if (i.molecula && molsVistas.indexOf(i.molecula) === -1) molsVistas.push(i.molecula); });
+      const kickoffSerial = serialDe(plan.general || this.client.fechaKickoff);
+      const nombresInst = insts.map(i => i.nombre).join(" · ");
+
+      const out = [];
+      out.push('<div class="pdf-report">');
+
+      out.push('<div class="pdf-header-fixed">');
+      out.push('<div style="width:16px;height:16px;flex:none;background:var(--accent);transform:rotate(45deg)"></div>');
+      out.push('<div style="font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--primary);white-space:nowrap">Volumetrics by AIVARA</div>');
+      out.push('<div style="flex:1"></div>');
+      out.push('<div style="font-size:10px;color:var(--text3);text-align:right">Plan de trabajo · Controles volumétricos · ' + esc(contribuyente) + '</div>');
+      out.push('</div>');
+      out.push('<div class="pdf-footer-fixed">');
+      out.push('<div style="font-size:10px;color:var(--text3)">volumetrics.com.mx · contacto@aivara.mx</div>');
+      out.push('<div style="font-size:10px;color:var(--text3)">Anexo 21 y 22 · SAT</div>');
+      out.push('</div>');
+
+      // Portada
+      const filasMeta = [
+        ["Contribuyente", contribuyente],
+        ["Equipo", "VOLUMETRICS · " + uv + " · " + contribuyente],
+        ["Unidad verificadora", uv],
+        ["Molécula", molsVistas.join(" · ")],
+        ["Fecha de kickoff", fechaCompleta(kickoffSerial)],
+        ["Ventana del proyecto", ventana],
+        ["Instalaciones", nombresInst]
+      ];
+      out.push('<div class="pdf-page">');
+      out.push('<div style="height:5px;background:linear-gradient(90deg,var(--accent),var(--accent-dk));margin:-74px -56px 26px"></div>');
+      out.push('<div style="font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--accent);border-bottom:2px solid var(--accent);padding-bottom:5px;display:inline-block">Controles volumétricos · Anexo 21 y 22</div>');
+      out.push('<div style="font-size:30px;font-weight:800;margin-top:14px;letter-spacing:-0.5px;color:var(--primary)">Plan de trabajo — ' + esc(contribuyente) + '</div>');
+      out.push('<div style="font-size:13px;color:var(--text2);line-height:1.55;margin-top:12px;max-width:640px">Programa de implementación para el cumplimiento del control volumétrico ante el SAT, con la secuencia de partidas, subtareas, responsables y fechas comprometidas por instalación.</div>');
+      out.push('<div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:28px">');
+      filasMeta.forEach((f, i) => {
+        out.push('<div style="display:grid;grid-template-columns:220px 1fr;' + (i ? "border-top:1px solid var(--line);" : "") + '">');
+        out.push('<div style="padding:12px 18px;background:var(--surface);font-size:10px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:var(--text3);display:flex;align-items:center">' + esc(f[0]) + '</div>');
+        out.push('<div style="padding:12px 18px;font-size:13px;font-weight:700;color:var(--primary);display:flex;align-items:center">' + esc(f[1]) + '</div>');
+        out.push('</div>');
+      });
+      out.push('</div></div>');
+
+      // Una página por instalación
+      insts.forEach(inst => {
+        let subTot = 0;
+        inst.partidas.forEach(p => subTot += p.subtareas.length);
+        out.push('<div class="pdf-page" style="break-before:page;page-break-before:always">');
+        out.push('<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;border-bottom:2px solid var(--accent);padding-bottom:10px">');
+        out.push('<span style="font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--accent)">Instalación</span>');
+        out.push('<span style="font-size:22px;font-weight:800;color:var(--primary)">' + esc(inst.nombre) + '</span>');
+        out.push('</div>');
+        out.push('<div style="font-size:11px;color:var(--text3);margin:10px 0 22px">Molécula ' + esc(inst.molecula)
+          + ' · Kickoff ' + fechaLarga(inst.kickoff) + ' · Ventana ' + fechaLarga(inst.ini) + ' → ' + fechaLarga(inst.fin)
+          + ' · ' + inst.partidas.length + (inst.partidas.length === 1 ? " partida" : " partidas")
+          + ' · ' + subTot + (subTot === 1 ? " subtarea" : " subtareas") + '</div>');
+
+        inst.partidas.forEach(p => {
+          out.push('<div class="avoid-break" style="margin-bottom:18px">');
+          out.push('<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--accent);color:#fff;border-radius:10px 10px 0 0;padding:10px 16px">');
+          out.push('<div style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:800"><span>' + p.id + '</span><span>' + esc(this.txt(p.nombre)) + '</span></div>');
+          out.push('<div style="font-size:12px;font-weight:800;white-space:nowrap">' + rango(p.ini + inst.off, p.fin + inst.off) + '</div>');
+          out.push('</div>');
+          out.push('<div style="border:1px solid var(--line);border-top:none;border-radius:0 0 10px 10px;overflow:hidden">');
+          out.push('<div style="display:grid;grid-template-columns:40px minmax(0,1fr) 140px 130px;gap:12px;padding:9px 16px;background:var(--surface);border-bottom:1px solid var(--line)">');
+          ["#", "Subtarea", "Responsable", "Inicio · Fin"].forEach(h =>
+            out.push('<div style="font-size:9px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:var(--text3)">' + h + '</div>'));
+          out.push('</div>');
+          p.subtareas.forEach((s, si) => {
+            out.push('<div style="display:grid;grid-template-columns:40px minmax(0,1fr) 140px 130px;gap:12px;padding:10px 16px;' + (si ? "border-top:1px solid var(--line);" : "") + '">');
+            out.push('<div style="font-size:10px;font-weight:800;color:var(--accent-dk)">' + s.id + '</div>');
+            out.push('<div style="font-size:12px;color:var(--primary);line-height:1.4">' + esc(this.txt(s.nombre)) + '</div>');
+            out.push('<div style="font-size:10px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:var(--text3)">' + esc(this.txt(s.resp)) + '</div>');
+            out.push('<div style="font-size:11px;color:var(--text2)">' + rango(s.ini + inst.off, s.fin + inst.off) + '</div>');
+            out.push('</div>');
+          });
+          out.push('</div></div>');
+        });
+        out.push('</div>');
+      });
+
+      if (hayMatriz) {
+        out.push('<div class="pdf-page" style="break-before:page;page-break-before:always">' + this.renderMatrizResp() + '</div>');
+      }
+
+      out.push('</div>');
+      return out.join("");
     }
 
     renderMatrizResp() {
