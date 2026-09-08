@@ -72,6 +72,25 @@ python publish_docs.py
 El workflow de GitHub Actions ya hace esto automáticamente cada vez que
 publica un plan en Pages, así que normalmente no hace falta correrlo a mano.
 
+### Publicar directo a GitHub Pages desde el formulario
+
+Además de "Generar y descargar", el formulario tiene una segunda tarjeta,
+**"Publicar en GitHub Pages"**, que dispara el mismo workflow de Actions
+(`generar-plan.yml`) con los datos ya llenados — el mismo resultado que si
+lo corrieras a mano desde la pestaña Actions, pero sin salir del formulario.
+
+Para eso necesita un [token personal de GitHub](https://github.com/settings/tokens)
+con permiso para disparar Actions (classic token con scope `repo`, o
+fine-grained token con permiso *Actions: Read and write* sobre este repo). El
+token solo se usa para llamar directo a `api.github.com` desde el navegador
+de quien lo usa — nunca se envía a ningún otro servidor ni queda en el
+repositorio. Por default no se guarda entre sesiones (vive en `sessionStorage`,
+se borra al cerrar la pestaña); la casilla "Recordar el token en este
+navegador" lo pasa a `localStorage` si se marca explícitamente.
+
+Al terminar, muestra un link a la ejecución en Actions y la URL final de
+Pages donde va a quedar el plan (tarda 1-2 minutos en estar listo).
+
 ## Uso
 
 Interactivo:

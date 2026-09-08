@@ -51,6 +51,9 @@
   button.ghost { background: #fff; color: var(--text2); border: 1.5px solid var(--line); }
   button.ghost:hover { border-color: var(--accent); color: var(--accent-dk); }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
+  code { background: var(--surface); padding: 1px 6px; border-radius: 4px; font-size: 11px; }
+  input[type="password"] { width: 100%; font: inherit; font-size: 13px; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 8px; }
+  input[type="password"]:focus { outline: none; border-color: var(--accent); }
   .msg { font-size: 12px; padding: 10px 14px; border-radius: 10px; margin-top: 14px; display: none; }
   .msg.error { display: block; background: var(--red-bg); border: 1px solid var(--red-line); color: var(--red-dk); }
   .msg.ok { display: block; background: var(--green-bg); border: 1px solid var(--green-line); color: var(--green-dk); }
@@ -133,6 +136,30 @@
     <div class="actions">
       <button type="button" class="primary" id="btn-generar">Generar y descargar</button>
       <button type="button" class="ghost" id="btn-preview">Vista previa</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Publicar en GitHub Pages</h2>
+    <div class="sub">Dispara el mismo workflow de GitHub Actions que genera el plan y lo publica en <code>docs/&lt;cliente&gt;/</code> — con los datos de arriba, como si lo corrieras desde la pestaña Actions.</div>
+
+    <div class="field">
+      <label for="f-token">Token de GitHub</label>
+      <input type="password" id="f-token" placeholder="ghp_… o github_pat_…" autocomplete="off">
+      <div class="hint">
+        Un <a href="https://github.com/settings/tokens" target="_blank" rel="noopener">token personal</a> con permiso para disparar Actions:
+        classic token con scope <code>repo</code>, o fine-grained token con permiso <em>Actions: Read and write</em> sobre este repositorio.
+        Se usa solo para hablar directo con <code>api.github.com</code> desde tu navegador — nunca se sube a ningún otro lado.
+      </div>
+      <label style="display:flex;align-items:center;gap:7px;margin-top:10px;font-size:11px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--text2)">
+        <input type="checkbox" id="f-token-recordar" style="margin:0;accent-color:var(--accent)"> Recordar el token en este navegador
+      </label>
+    </div>
+
+    <div id="pub-msg" class="msg"></div>
+
+    <div class="actions">
+      <button type="button" class="primary" id="btn-publicar">Generar y publicar en GitHub Pages</button>
     </div>
   </div>
 
@@ -272,8 +299,8 @@
     return { html: html, slug: slugify(r.clientData.contribuyente) };
   }
 
-  function mostrarMensaje(texto, tipo) {
-    const el = document.getElementById("f-msg");
+  function mostrarMensaje(texto, tipo, elId) {
+    const el = document.getElementById(elId || "f-msg");
     el.textContent = texto;
     el.className = "msg " + tipo;
   }
@@ -297,6 +324,108 @@
     const url = URL.createObjectURL(blob);
     window.open(url, "_blank");
     mostrarMensaje("Vista previa abierta en una pestaña nueva.", "ok");
+  });
+
+  // ---- Publicar en GitHub Pages: dispara el mismo workflow_dispatch que
+  // corres a mano desde la pestaña Actions, con los datos de este formulario.
+  const REPO_OWNER = "heber-peniche";
+  const REPO_NAME = "plan-generator-";
+  const WORKFLOW_FILE = "generar-plan.yml";
+  const TOKEN_KEY = "vol-gh-token";
+
+  const tokenInput = document.getElementById("f-token");
+  const recordarChk = document.getElementById("f-token-recordar");
+  const tokenGuardado = localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
+  if (tokenGuardado) { tokenInput.value = tokenGuardado; recordarChk.checked = !!localStorage.getItem(TOKEN_KEY); }
+
+  function leerCamposCrudos() {
+    const contribuyente = document.getElementById("f-contribuyente").value.trim();
+    const kickoff = document.getElementById("f-kickoff").value.trim();
+    if (!contribuyente) return { error: "El contribuyente es obligatorio." };
+    if (!kickoff) return { error: "La fecha de kickoff es obligatoria." };
+    const kickoffExc = document.getElementById("f-kickoff-exc").value.trim();
+    const excluirIds = Array.from(document.querySelectorAll('#f-excluir input:checked')).map(el => el.value);
+    return {
+      inputs: {
+        contribuyente: contribuyente,
+        instalaciones: document.getElementById("f-instalaciones").value.trim() || "1",
+        molecula: document.getElementById("f-molecula").value.trim() || "Gas L.P.",
+        excluir: excluirIds.join(","),
+        unidad_verificadora: document.getElementById("f-uv").value.trim() || "VICER",
+        kickoff: kickoffExc ? kickoff + ", " + kickoffExc : kickoff,
+        anios_historicos: document.getElementById("f-anios-hist").value.trim() || ANIOS_DEFAULT,
+        anios_certificacion: document.getElementById("f-anios-cert").value.trim() || ANIOS_DEFAULT,
+        publicar_en_pages: true
+      },
+      slug: slugify(contribuyente)
+    };
+  }
+
+  async function dispararWorkflow(token, inputs) {
+    const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${WORKFLOW_FILE}/dispatches`, {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28"
+      },
+      body: JSON.stringify({ ref: "main", inputs: inputs })
+    });
+    if (res.status === 204) return;
+    const texto = await res.text().catch(() => "");
+    if (res.status === 401) throw new Error("Token inválido o vencido.");
+    if (res.status === 403) throw new Error("El token no tiene permiso para disparar Actions en este repositorio (revisa el scope).");
+    if (res.status === 404) throw new Error("No se encontró el workflow o el repositorio (¿el token tiene acceso?).");
+    throw new Error("GitHub respondió " + res.status + ": " + texto.slice(0, 200));
+  }
+
+  async function buscarRunReciente(token, desde) {
+    const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${WORKFLOW_FILE}/runs?event=workflow_dispatch&per_page=5`;
+    for (let intento = 0; intento < 6; intento++) {
+      await new Promise(r => setTimeout(r, 1500));
+      try {
+        const res = await fetch(url, { headers: { "Authorization": "Bearer " + token, "Accept": "application/vnd.github+json" } });
+        if (res.ok) {
+          const data = await res.json();
+          const run = (data.workflow_runs || []).find(r => new Date(r.created_at).getTime() >= desde);
+          if (run) return run;
+        }
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  document.getElementById("btn-publicar").addEventListener("click", async () => {
+    const btn = document.getElementById("btn-publicar");
+    const campos = leerCamposCrudos();
+    if (campos.error) { mostrarMensaje(campos.error, "error", "pub-msg"); return; }
+    const token = tokenInput.value.trim();
+    if (!token) { mostrarMensaje("Pega tu token de GitHub primero.", "error", "pub-msg"); return; }
+
+    if (recordarChk.checked) localStorage.setItem(TOKEN_KEY, token);
+    else { localStorage.removeItem(TOKEN_KEY); sessionStorage.setItem(TOKEN_KEY, token); }
+
+    btn.disabled = true;
+    mostrarMensaje("Disparando el workflow en GitHub…", "ok", "pub-msg");
+    const desde = Date.now() - 5000;
+    try {
+      await dispararWorkflow(token, campos.inputs);
+      mostrarMensaje("Workflow disparado. Buscando la ejecución para darte el link…", "ok", "pub-msg");
+      const run = await buscarRunReciente(token, desde);
+      const urlPages = `https://${REPO_OWNER}.github.io/${REPO_NAME}/${campos.slug}/`;
+      if (run) {
+        mostrarMensaje("", "ok", "pub-msg");
+        const el = document.getElementById("pub-msg");
+        el.innerHTML = 'En marcha — <a href="' + run.html_url + '" target="_blank" rel="noopener">ver la ejecución en GitHub Actions</a>. '
+          + 'Cuando termine (1-2 min), el plan queda en <a href="' + urlPages + '" target="_blank" rel="noopener">' + urlPages + '</a>.';
+      } else {
+        mostrarMensaje("Se disparó el workflow, pero no encontré la ejecución todavía. Revisa la pestaña Actions del repo directamente.", "ok", "pub-msg");
+      }
+    } catch (err) {
+      mostrarMensaje(err.message, "error", "pub-msg");
+    } finally {
+      btn.disabled = false;
+    }
   });
 })();
 </script>
