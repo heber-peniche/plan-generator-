@@ -3,7 +3,11 @@
 Publica un plan de trabajo ya generado en docs/<cliente>/index.html para que
 GitHub Pages lo sirva (Settings > Pages > Deploy from a branch > main > /docs).
 
-También regenera docs/index.html con la lista de todos los planes publicados.
+También regenera docs/index.html: un formulario que genera planes 100% en el
+navegador (sin backend, reutilizando templates/plan_template.html y los datos
+fijos de data/) más la lista de todos los planes ya publicados. Para que ese
+formulario funcione, este script sincroniza esos mismos archivos como assets
+estáticos en docs/_generador/.
 
 Uso:
     python publish_docs.py output/general-motors-plan-de-trabajo.html "General Motors"
@@ -19,6 +23,11 @@ from generate import slugify
 
 BASE_DIR = Path(__file__).resolve().parent
 DOCS_DIR = BASE_DIR / "docs"
+ASSETS_DIR = DOCS_DIR / "_generador"
+INDEX_TEMPLATE_PATH = BASE_DIR / "templates" / "index_template.html"
+PLAN_TEMPLATE_PATH = BASE_DIR / "templates" / "plan_template.html"
+PARTIDAS_PATH = BASE_DIR / "data" / "partidas.json"
+MATRIZ_PATH = BASE_DIR / "data" / "matriz_responsabilidad.json"
 
 
 def extraer_titulo(path: Path) -> str | None:
@@ -36,11 +45,22 @@ def publicar(html_path: Path, contribuyente: str) -> Path:
     return destino
 
 
+def sync_assets():
+    """Copia la plantilla y los datos fijos a docs/_generador/ para que el
+    formulario de docs/index.html los pueda leer con fetch() en el navegador
+    (mismo origen, sin CORS) y generar el plan sin backend."""
+    ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(PLAN_TEMPLATE_PATH, ASSETS_DIR / "plan_template.html")
+    shutil.copyfile(PARTIDAS_PATH, ASSETS_DIR / "partidas.json")
+    if MATRIZ_PATH.exists():
+        shutil.copyfile(MATRIZ_PATH, ASSETS_DIR / "matriz_responsabilidad.json")
+
+
 def reconstruir_indice():
     entradas = []
     if DOCS_DIR.exists():
         for sub in sorted(DOCS_DIR.iterdir()):
-            if sub.is_dir() and (sub / "index.html").exists():
+            if sub.is_dir() and sub.name != "_generador" and (sub / "index.html").exists():
                 titulo = extraer_titulo(sub / "index.html") or sub.name
                 entradas.append((titulo, sub.name))
 
@@ -50,40 +70,25 @@ def reconstruir_indice():
     ) or '      <li style="color:#888">Aún no hay planes publicados.</li>'
 
     actualizado = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    pagina = f"""<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex, nofollow">
-<title>Planes de trabajo — Volumetrics by AIVARA</title>
-<style>
-  body {{ font-family: -apple-system, "Segoe UI", Arial, sans-serif; max-width: 640px; margin: 60px auto; padding: 0 24px; color: #4D4D4D; }}
-  h1 {{ font-size: 20px; }}
-  ul {{ list-style: none; padding: 0; }}
-  li {{ padding: 12px 0; border-bottom: 1px solid #E5E5E5; }}
-  a {{ color: #C94A1C; text-decoration: none; font-weight: 600; }}
-  a:hover {{ text-decoration: underline; }}
-  .nota {{ font-size: 12px; color: #888; margin-top: 32px; }}
-</style>
-</head>
-<body>
-  <h1>Planes de trabajo — Volumetrics by AIVARA</h1>
-  <ul>
-{filas}
-  </ul>
-  <p class="nota">Actualizado {actualizado} · generado automáticamente, no editar a mano.</p>
-</body>
-</html>
-"""
+    plantilla = INDEX_TEMPLATE_PATH.read_text(encoding="utf-8")
+    pagina = plantilla.replace("{{ LISTA_PLANES }}", filas).replace("{{ ACTUALIZADO }}", actualizado)
+
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
     (DOCS_DIR / "index.html").write_text(pagina, encoding="utf-8")
     (DOCS_DIR / ".nojekyll").touch()
+    sync_assets()
 
 
 def main():
+    if len(sys.argv) == 1:
+        # Sin argumentos: solo refresca docs/index.html y docs/_generador/
+        # (útil la primera vez, o después de editar la plantilla/los datos
+        # fijos, sin necesidad de publicar el plan de ningún cliente).
+        reconstruir_indice()
+        print(f"Índice actualizado: {DOCS_DIR / 'index.html'}")
+        return
     if len(sys.argv) != 3:
-        print("Uso: python publish_docs.py <ruta-al-html-generado> <contribuyente>", file=sys.stderr)
+        print("Uso: python publish_docs.py [<ruta-al-html-generado> <contribuyente>]", file=sys.stderr)
         sys.exit(1)
     html_path = Path(sys.argv[1])
     if not html_path.exists():

@@ -12,11 +12,18 @@ generator/
   generate.py              # script de generación (CLI interactivo o por flags)
   templates/
     plan_template.html     # plantilla única: CSS + lógica de negocio en JS vanilla
+    index_template.html    # formulario generador + listado, para docs/index.html
   data/
     partidas.json                    # estructura fija de partidas/subtareas (del Excel de plan de trabajo)
     matriz_responsabilidad.json      # matriz RACI fija (del Excel de matriz de responsabilidad)
+  publish_docs.py          # publica un plan y/o refresca docs/index.html + docs/_generador/
 output/
   <cliente>-plan-de-trabajo.html   # un archivo por cliente, lo que se entrega
+docs/
+  index.html               # página de inicio de GitHub Pages: formulario + planes publicados
+  _generador/               # copia de plan_template.html/partidas.json/matriz_responsabilidad.json,
+                            # servida como assets estáticos para el formulario (generado, no editar)
+  <cliente>/index.html     # cada plan publicado
 ```
 
 - **Datos** (`data/partidas.json`, `data/matriz_responsabilidad.json`) y
@@ -33,6 +40,37 @@ output/
   quedaron transcritas a `data/*.json`. Lo único que cambia por cliente son
   los 6 datos de entrada; el generador no lee ningún Excel en tiempo de
   ejecución ni tiene dependencias externas.
+
+## Generar desde el navegador (sin instalar nada)
+
+`docs/index.html` — la página de inicio publicada en GitHub Pages — trae un
+formulario que genera el plan **100% en el navegador**, sin backend: pide los
+mismos datos que `generate.py` (con checkboxes para las partidas a excluir en
+vez de tener que escribir el nombre), arma el HTML con la misma plantilla y
+los mismos `data/*.json`, y ofrece **Vista previa** (lo abre en una pestaña) y
+**Generar y descargar** (baja el archivo listo para enviar). Nada se sube a
+ningún servidor — todo pasa en la pestaña de quien lo usa.
+
+Esto lo arma `templates/index_template.html` (el HTML/CSS/JS del formulario,
+con `{{ LISTA_PLANES }}` y `{{ ACTUALIZADO }}` como los únicos placeholders) +
+`publish_docs.py`, que:
+1. Copia `templates/plan_template.html`, `data/partidas.json` y
+   `data/matriz_responsabilidad.json` a `docs/_generador/` — son los mismos
+   tres archivos que usa `generate.py`, servidos como assets estáticos para
+   que el formulario los lea con `fetch()` (mismo origen, sin CORS).
+2. Rellena `index_template.html` con la lista de planes ya publicados y
+   escribe el resultado en `docs/index.html`.
+
+Para refrescar la página de inicio (por ejemplo después de editar el
+formulario, la plantilla o los datos fijos) sin publicar el plan de ningún
+cliente:
+
+```bash
+python publish_docs.py
+```
+
+El workflow de GitHub Actions ya hace esto automáticamente cada vez que
+publica un plan en Pages, así que normalmente no hace falta correrlo a mano.
 
 ## Uso
 

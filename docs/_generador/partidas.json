@@ -1,0 +1,71 @@
+{
+  "spanIni": 45762,
+  "spanFin": 45811,
+  "partidas": [
+    {
+      "id": "A",
+      "nombre": "Pre-auditoría y diagnóstico",
+      "responsable": "VOLUMETRICS",
+      "ini": 45762,
+      "fin": 45777,
+      "subtareas": [
+        { "id": "A.1", "nombre": "VOLUMETRICS elabora y entrega checklist del anexo 21 y 22 al contribuyente", "resp": "VOLUMETRICS", "ini": 45762, "fin": 45767 },
+        { "id": "A.2", "nombre": "CONTRIBUYENTE provee los documentos del checklist de pre-auditoría", "resp": "CONTRIBUYENTE", "ini": 45762, "fin": 45767 },
+        { "id": "A.3", "nombre": "VOLUMETRICS realiza pre-auditoría y diagnóstico", "resp": "VOLUMETRICS", "ini": 45762, "fin": 45767 },
+        { "id": "A.4", "nombre": "Elaboración del informe ejecutivo", "resp": "VOLUMETRICS", "ini": 45767, "fin": 45777 }
+      ]
+    },
+    {
+      "id": "B",
+      "nombre": "Generación de reportes históricos SAT 2022-2025",
+      "responsable": "VOLUMETRICS",
+      "ini": 45762,
+      "fin": 45783,
+      "subtareas": [
+        { "id": "B.1", "nombre": "VOLUMETRICS provee layout y requerimientos de datos", "resp": "VOLUMETRICS", "ini": 45762, "fin": 45769 },
+        { "id": "B.2", "nombre": "CONTRIBUYENTE provee la data cruda (raw data)", "resp": "CONTRIBUYENTE", "ini": 45762, "fin": 45769 },
+        { "id": "B.3", "nombre": "VOLUMETRICS llena los layouts y valida la información técnica del reporte (balances y facturas)", "resp": "VOLUMETRICS", "ini": 45769, "fin": 45776 },
+        { "id": "B.4", "nombre": "VOLUMETRICS genera los reportes JSON", "resp": "VOLUMETRICS", "ini": 45776, "fin": 45783 },
+        { "id": "B.5", "nombre": "Visto bueno de reportes y carga al portal del SAT", "resp": "CONTRIBUYENTE", "ini": 45776, "fin": 45783 }
+      ]
+    },
+    {
+      "id": "C",
+      "nombre": "Programa informático para el control volumétrico del SAT — Nube",
+      "responsable": "VOLUMETRICS",
+      "ini": 45762,
+      "fin": 45804,
+      "subtareas": [
+        { "id": "C.1", "nombre": "Apertura de cuenta: configuración de accesos al software SaaS (infraestructura, productos, empresa y sistema de medición)", "resp": "VOLUMETRICS", "ini": 45762, "fin": 45769 },
+        { "id": "C.2", "nombre": "Levantamiento de requerimientos para integraciones a los sistemas de información y medición del contribuyente", "resp": "VOLUMETRICS", "ini": 45762, "fin": 45769 },
+        { "id": "C.3", "nombre": "Configuración y desarrollo de módulos específicos del cliente que sean parte de las integraciones", "resp": "VOLUMETRICS", "ini": 45769, "fin": 45797 },
+        { "id": "C.4", "nombre": "Pruebas FAT y SAT", "resp": "VOLUMETRICS", "ini": 45790, "fin": 45797 },
+        { "id": "C.6", "nombre": "Capacitación a personal de CONTRIBUYENTE", "resp": "VOLUMETRICS", "ini": 45790, "fin": 45797 }
+      ]
+    },
+    {
+      "id": "D",
+      "nombre": "Adaptación e implementación del SGM 10012 — Balance volumétrico",
+      "responsable": "VOLUMETRICS",
+      "ini": 45762,
+      "fin": 45790,
+      "subtareas": [
+        { "id": "D.1", "nombre": "Entrega del programa de implementación / ejecución y asesoramiento del SGM", "resp": "VOLUMETRICS", "ini": 45762, "fin": 45769 },
+        { "id": "D.2", "nombre": "VOLUMETRICS documenta y registra los procedimientos para el SGM 10012", "resp": "VOLUMETRICS", "ini": 45762, "fin": 45769 },
+        { "id": "D.3", "nombre": "VOLUMETRICS adecúa e implementa el SGM 10012 para CONTRIBUYENTE", "resp": "VOLUMETRICS", "ini": 45769, "fin": 45790 },
+        { "id": "D.4", "nombre": "VOLUMETRICS capacita a CONTRIBUYENTE en el correcto uso del SGM en el software", "resp": "VOLUMETRICS", "ini": 45783, "fin": 45790 }
+      ]
+    },
+    {
+      "id": "E",
+      "nombre": "Certificado anual del SAT — Anexo 21 y 22, 2022-2025",
+      "responsable": "%UV%",
+      "ini": 45804,
+      "fin": 45811,
+      "subtareas": [
+        { "id": "E.1", "nombre": "%UV% hace inspección del software, SGM y sistema de medición", "resp": "%UV%", "ini": 45804, "fin": 45811 },
+        { "id": "E.2", "nombre": "%UV% emite Certificado SAT 2022-2025", "resp": "%UV%", "ini": 45804, "fin": 45811 }
+      ]
+    }
+  ]
+}

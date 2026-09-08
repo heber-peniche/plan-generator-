@@ -1,0 +1,87 @@
+{
+  "columnas": [
+    "Armando Velázquez (PM)",
+    "Heber Peniche (TAM)",
+    "- UI",
+    "INSPECTOR",
+    "- TI",
+    "FINANZA/ IMPUESTOS / CONTABILIDAD",
+    "- OPERACIÓN"
+  ],
+  "filas": [
+    {
+      "tarea": "A. Pre-auditoría y diagnóstico",
+      "responsable": "VOLUMETRICS",
+      "valores": [
+        "A",
+        "I",
+        "R",
+        "C",
+        "I",
+        "I",
+        "I"
+      ]
+    },
+    {
+      "tarea": "B. Generación de reportes históricos SAT 2022-2025",
+      "responsable": "VOLUMETRICS",
+      "valores": [
+        "A",
+        "R",
+        "C",
+        "I",
+        "I",
+        "C",
+        "C"
+      ]
+    },
+    {
+      "tarea": "C.3 Volumetrics configuración y desarrollo de módulos especificos del cliente que sean parte de las integraciones.",
+      "responsable": "VOLUMETRICS",
+      "valores": [
+        "R",
+        "A",
+        "I",
+        "I",
+        "C",
+        "I",
+        "I"
+      ]
+    },
+    {
+      "tarea": "D.4 Volumetrics capacita a CONTRIBUYENTE en correcto uso del SGM en el software.",
+      "responsable": "VOLUMETRICS",
+      "valores": [
+        "A",
+        "C",
+        "C",
+        "R",
+        "I",
+        "C",
+        "C"
+      ]
+    }
+  ],
+  "leyenda": [
+    {
+      "letra": "R",
+      "titulo": "Responsable",
+      "descripcion": "Este rol corresponde a quien efectivamente realiza la tarea. Lo más habitual es que exista sólo un encargado (R) por cada tarea; si existe más de uno, entonces el trabajo debería ser subdividido a un nivel más bajo, usando para ello la matriz RASCI."
+    },
+    {
+      "letra": "A",
+      "titulo": "Aprobador",
+      "descripcion": "Este rol se responsabiliza de que la tarea se realice y es el que debe rendir cuentas sobre su ejecución. Sólo puede existir una persona que deba rendir cuentas (A) de que la tarea sea ejecutada por su Responsable (R)."
+    },
+    {
+      "letra": "C",
+      "titulo": "Consultado",
+      "descripcion": "Este rol posee alguna información o capacidad necesaria para realizar la tarea."
+    },
+    {
+      "letra": "I",
+      "titulo": "Informado",
+      "descripcion": "Este rol debe ser informado sobre el avance y los resultados de la ejecución de la tarea. A diferencia del consultado (C), la comunicación es unidireccional."
+    }
+  ]
+}
